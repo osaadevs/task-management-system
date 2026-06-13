@@ -5,6 +5,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const db = require('./config/db');
 const taskRoutes = require('./routes/taskRoutes');
+const commentRoutes = require('./routes/commentRoutes');
 
 dotenv.config();
 
@@ -19,6 +20,7 @@ app.use(express.json());
 
 // Routes
 app.use('/api/tasks', taskRoutes);
+app.use('/api/comments', commentRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: 'Task Management System API is running!' });

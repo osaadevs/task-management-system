@@ -3,7 +3,13 @@ const TaskModel = require('../models/taskModel');
 const TaskController = {
 
   getAllTasks: (req, res) => {
-    TaskModel.getAllTasks((err, results) => {
+    const filters = {
+      status: req.query.status || null,
+      priority: req.query.priority || null,
+      assigned_to: req.query.assigned_to || null
+    };
+
+    TaskModel.getAllTasks(filters, (err, results) => {
       if (err) {
         return res.status(500).json({ error: 'Failed to get tasks', message: err.message });
       }

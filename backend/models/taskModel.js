@@ -2,11 +2,29 @@ const db = require('../config/db');
 
 const TaskModel = {
 
-  getAllTasks: (callback) => {
-    const sql = `SELECT tasks.*, users.name as assigned_to_name 
-                 FROM tasks 
-                 LEFT JOIN users ON tasks.assigned_to = users.id`;
-    db.query(sql, callback);
+  getAllTasks: (filters, callback) => {
+    let sql = `SELECT tasks.*, users.name as assigned_to_name 
+               FROM tasks 
+               LEFT JOIN users ON tasks.assigned_to = users.id
+               WHERE 1=1`;
+    const values = [];
+
+    if (filters.status) {
+      sql += ` AND tasks.status = ?`;
+      values.push(filters.status);
+    }
+
+    if (filters.priority) {
+      sql += ` AND tasks.priority = ?`;
+      values.push(filters.priority);
+    }
+
+    if (filters.assigned_to) {
+      sql += ` AND tasks.assigned_to = ?`;
+      values.push(filters.assigned_to);
+    }
+
+    db.query(sql, values, callback);
   },
 
   getTaskById: (id, callback) => {
@@ -59,4 +77,3 @@ const TaskModel = {
 };
 
 module.exports = TaskModel;
-
