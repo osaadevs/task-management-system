@@ -47,6 +47,13 @@ app.get('/', (req, res) => {
 });
 
 app.get('/api/health', (req, res) => {
+  if (!process.env.DB_HOST || !process.env.DB_USER || !process.env.DB_NAME) {
+    return res.status(503).json({
+      status: 'error',
+      message: 'Database environment variables are missing on the server',
+    });
+  }
+
   db.query('SELECT 1 AS ok', (err) => {
     if (err) {
       return res.status(503).json({

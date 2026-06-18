@@ -3,7 +3,7 @@ const db = require('../config/db');
 const CommentModel = {
 
   getCommentsByTask: (task_id, callback) => {
-    const sql = `SELECT comments.*, users.name as user_name 
+    const sql = `SELECT comments.*, users.full_name as user_name 
                  FROM comments 
                  LEFT JOIN users ON comments.user_id = users.id 
                  WHERE comments.task_id = ?`;
