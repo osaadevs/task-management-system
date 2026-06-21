@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: task-management-system-backend
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install && npx prisma generate
+    startCommand: npm start
+    envVars:
+      - key: CLIENT_ORIGIN
+        value: https://task-managemnet-system.netlify.app
+      - key: API_BASE_URL
+        value: https://task-management-system-backend-z9y4.onrender.com
+      - key: DB_SSL
+        value: "true"
+      - key: SUPABASE_POOLER_HOST
+        value: aws-0-ap-southeast-1.pooler.supabase.com
+      # Set DATABASE_URL in Render dashboard (direct Supabase URI — auto-rewritten to pooler on Render)

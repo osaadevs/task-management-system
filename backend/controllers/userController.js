@@ -55,7 +55,8 @@ exports.getUsers = async (req, res) => {
     const [results] = await db.promise().query(
       `SELECT u.id, u.full_name, u.email, u.is_active, u.created_at, r.role_name 
        FROM users u 
-       JOIN roles r ON u.role_id = r.id`
+       JOIN roles r ON u.role_id = r.id
+       ORDER BY u.id`
     );
     res.json(results);
   } catch (err) {

@@ -21,16 +21,16 @@ INSERT INTO roles (id, role_name) VALUES
 -- ------------------------------------------------------------
 -- Passwords are bcrypt hashes of the placeholder 'Password@123'
 -- In production, NEVER store plaintext passwords.
--- bcrypt hash generated with cost factor 12.
+-- bcrypt hash for Password@123 (cost factor 12)
 -- ------------------------------------------------------------
 INSERT INTO users (id, role_id, full_name, email, password_hash, is_first_login, is_active, profile_image) VALUES
-    (1, 1, 'Yasith Mavinda',       'yasith@tms.com',       '$2b$12$LJ3m9g5Y6kXZ5Z5Z5Z5Z5OaK8kG8kG8kG8kG8kG8kG8kG8kG8kG8', FALSE, TRUE, NULL),
-    (2, 2, 'Sarah Johnson',        'sarah.j@tms.com',      '$2b$12$LJ3m9g5Y6kXZ5Z5Z5Z5Z5OaK8kG8kG8kG8kG8kG8kG8kG8kG8kG8', FALSE, TRUE, NULL),
-    (3, 2, 'Michael Chen',         'michael.c@tms.com',    '$2b$12$LJ3m9g5Y6kXZ5Z5Z5Z5Z5OaK8kG8kG8kG8kG8kG8kG8kG8kG8kG8', FALSE, TRUE, NULL),
-    (4, 3, 'Emily Rodriguez',      'emily.r@tms.com',      '$2b$12$LJ3m9g5Y6kXZ5Z5Z5Z5Z5OaK8kG8kG8kG8kG8kG8kG8kG8kG8kG8', TRUE,  TRUE, NULL),
-    (5, 3, 'David Kim',            'david.k@tms.com',      '$2b$12$LJ3m9g5Y6kXZ5Z5Z5Z5Z5OaK8kG8kG8kG8kG8kG8kG8kG8kG8kG8', TRUE,  TRUE, NULL),
-    (6, 3, 'Aisha Patel',          'aisha.p@tms.com',      '$2b$12$LJ3m9g5Y6kXZ5Z5Z5Z5Z5OaK8kG8kG8kG8kG8kG8kG8kG8kG8kG8', FALSE, TRUE, NULL),
-    (7, 3, 'James O''Brien',       'james.o@tms.com',      '$2b$12$LJ3m9g5Y6kXZ5Z5Z5Z5Z5OaK8kG8kG8kG8kG8kG8kG8kG8kG8kG8', FALSE, FALSE, NULL);
+    (1, 1, 'Yasith Mavinda',       'yasith@tms.com',       '$2b$12$6fmOrWqxP1rwW1Gv0D1t3ONwEcIQaBjf64.yyqtYsn8gkL2NhHViS', FALSE, TRUE, NULL),
+    (2, 2, 'Sarah Johnson',        'sarah.j@tms.com',      '$2b$12$6fmOrWqxP1rwW1Gv0D1t3ONwEcIQaBjf64.yyqtYsn8gkL2NhHViS', FALSE, TRUE, NULL),
+    (3, 2, 'Michael Chen',         'michael.c@tms.com',    '$2b$12$6fmOrWqxP1rwW1Gv0D1t3ONwEcIQaBjf64.yyqtYsn8gkL2NhHViS', FALSE, TRUE, NULL),
+    (4, 3, 'Emily Rodriguez',      'emily.r@tms.com',      '$2b$12$6fmOrWqxP1rwW1Gv0D1t3ONwEcIQaBjf64.yyqtYsn8gkL2NhHViS', TRUE,  TRUE, NULL),
+    (5, 3, 'David Kim',            'david.k@tms.com',      '$2b$12$6fmOrWqxP1rwW1Gv0D1t3ONwEcIQaBjf64.yyqtYsn8gkL2NhHViS', TRUE,  TRUE, NULL),
+    (6, 3, 'Aisha Patel',          'aisha.p@tms.com',      '$2b$12$6fmOrWqxP1rwW1Gv0D1t3ONwEcIQaBjf64.yyqtYsn8gkL2NhHViS', FALSE, TRUE, NULL),
+    (7, 3, 'James O''Brien',       'james.o@tms.com',      '$2b$12$6fmOrWqxP1rwW1Gv0D1t3ONwEcIQaBjf64.yyqtYsn8gkL2NhHViS', FALSE, FALSE, NULL);
 
 -- ------------------------------------------------------------
 -- 3. PROJECTS
