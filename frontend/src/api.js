@@ -10,7 +10,7 @@ function getStoredAuth() {
   }
 }
 
-function buildHeaders(includeRole = true) {
+function buildHeaders() {
   const auth = getStoredAuth();
   const headers = { 'Content-Type': 'application/json' };
 
@@ -18,15 +18,18 @@ function buildHeaders(includeRole = true) {
     headers.Authorization = `Bearer ${auth.token}`;
   }
 
-  if (includeRole && auth?.user?.role) {
-    headers['user-role'] = auth.user.role;
-  }
-
   return headers;
 }
 
 async function handleResponse(response) {
   const data = await response.json().catch(() => ({}));
+
+  if (response.status === 401) {
+    localStorage.removeItem('tms_auth');
+    if (!window.location.pathname.includes('/login')) {
+      window.location.href = '/login';
+    }
+  }
 
   if (!response.ok) {
     const message =
@@ -49,17 +52,16 @@ export const api = {
   resetPassword(newPassword) {
     return fetch(`${API_BASE}/auth/reset-password`, {
       method: 'POST',
-      headers: buildHeaders(false),
+      headers: buildHeaders(),
       body: JSON.stringify({ newPassword }),
     }).then(handleResponse);
   },
 
   getTasks(params = {}) {
     const query = new URLSearchParams(
-      Object.entries(params).filter(([, value]) => value)
+      Object.entries(params).filter(([, value]) => value !== '' && value != null)
     ).toString();
     const url = query ? `${API_BASE}/tasks?${query}` : `${API_BASE}/tasks`;
-
     return fetch(url, { headers: buildHeaders() }).then(handleResponse);
   },
 
@@ -113,16 +115,28 @@ export const api = {
     }).then(handleResponse);
   },
 
+  getProjects() {
+    return fetch(`${API_BASE}/projects`, {
+      headers: buildHeaders(),
+    }).then(handleResponse);
+  },
+
+  getTeamMembers() {
+    return fetch(`${API_BASE}/users/team`, {
+      headers: buildHeaders(),
+    }).then(handleResponse);
+  },
+
   getUsers() {
     return fetch(`${API_BASE}/users`, {
-      headers: buildHeaders(false),
+      headers: buildHeaders(),
     }).then(handleResponse);
   },
 
   createUser(user) {
     return fetch(`${API_BASE}/users`, {
       method: 'POST',
-      headers: buildHeaders(false),
+      headers: buildHeaders(),
       body: JSON.stringify(user),
     }).then(handleResponse);
   },
@@ -130,7 +144,7 @@ export const api = {
   updateUser(id, user) {
     return fetch(`${API_BASE}/users/${id}`, {
       method: 'PUT',
-      headers: buildHeaders(false),
+      headers: buildHeaders(),
       body: JSON.stringify(user),
     }).then(handleResponse);
   },
@@ -138,7 +152,40 @@ export const api = {
   deactivateUser(id) {
     return fetch(`${API_BASE}/users/${id}/deactivate`, {
       method: 'PATCH',
-      headers: buildHeaders(false),
+      headers: buildHeaders(),
+    }).then(handleResponse);
+  },
+
+  activateUser(id) {
+    return fetch(`${API_BASE}/users/${id}/activate`, {
+      method: 'PATCH',
+      headers: buildHeaders(),
+    }).then(handleResponse);
+  },
+
+  getNotifications() {
+    return fetch(`${API_BASE}/notifications`, {
+      headers: buildHeaders(),
+    }).then(handleResponse);
+  },
+
+  getUnreadCount() {
+    return fetch(`${API_BASE}/notifications/unread-count`, {
+      headers: buildHeaders(),
+    }).then(handleResponse);
+  },
+
+  markNotificationRead(id) {
+    return fetch(`${API_BASE}/notifications/${id}/read`, {
+      method: 'PATCH',
+      headers: buildHeaders(),
+    }).then(handleResponse);
+  },
+
+  markAllNotificationsRead() {
+    return fetch(`${API_BASE}/notifications/read-all`, {
+      method: 'PATCH',
+      headers: buildHeaders(),
     }).then(handleResponse);
   },
 };

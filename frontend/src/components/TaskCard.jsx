@@ -4,9 +4,35 @@ const PRIORITY_CLASS = {
   High: 'priority-high',
 };
 
-export default function TaskCard({ task, onOpen }) {
+function formatAssignees(task) {
+  const list = Array.isArray(task.assignees) ? task.assignees : [];
+  if (!list.length) return null;
+  return list.map((a) => a.full_name).join(', ');
+}
+
+export default function TaskCard({
+  task,
+  onOpen,
+  draggable = false,
+  isDragging = false,
+  onDragStart,
+  onDragEnd,
+}) {
+  const assignees = formatAssignees(task);
+
   return (
-    <article className="task-card" onClick={() => onOpen(task)}>
+    <article
+      className={`task-card ${isDragging ? 'task-card--dragging' : ''}`}
+      draggable={draggable}
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+      onClick={() => onOpen(task)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') onOpen(task);
+      }}
+    >
       <div className="task-card__top">
         <span className={`priority-badge ${PRIORITY_CLASS[task.priority] || ''}`}>
           {task.priority}
@@ -21,7 +47,7 @@ export default function TaskCard({ task, onOpen }) {
       {task.description && <p>{task.description}</p>}
       <div className="task-card__meta">
         <span>#{task.id}</span>
-        {task.project_id && <span>Project {task.project_id}</span>}
+        {assignees && <span className="task-card__assignee">{assignees}</span>}
       </div>
     </article>
   );

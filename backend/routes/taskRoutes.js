@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const TaskController = require('../controllers/taskController');
-const roleMiddleware = require('../middleware/roleMiddleware');
+const { verifyToken, requireRole } = require('../middleware/authMiddleware');
+const { blockIfMustResetPassword } = require('../middleware/requirePasswordReset');
 
 /**
  * @swagger
@@ -9,32 +10,34 @@ const roleMiddleware = require('../middleware/roleMiddleware');
  *   get:
  *     summary: Get all tasks
  *     tags: [Tasks]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: query
  *         name: status
  *         schema:
  *           type: string
- *         description: Filter by status
  *       - in: query
  *         name: priority
  *         schema:
  *           type: string
- *         description: Filter by priority
+ *       - in: query
+ *         name: assigned_to
+ *         schema:
+ *           type: integer
  *       - in: query
  *         name: sortBy
  *         schema:
  *           type: string
- *         description: Sort by field (due_date, priority, status)
  *       - in: query
  *         name: sortOrder
  *         schema:
  *           type: string
- *         description: Sort order (asc, desc)
  *     responses:
  *       200:
  *         description: List of tasks
  */
-router.get('/', roleMiddleware.isCollaboratorOrAbove, TaskController.getAllTasks);
+router.get('/', verifyToken, blockIfMustResetPassword, TaskController.getAllTasks);
 
 /**
  * @swagger
@@ -42,19 +45,10 @@ router.get('/', roleMiddleware.isCollaboratorOrAbove, TaskController.getAllTasks
  *   get:
  *     summary: Get task by ID
  *     tags: [Tasks]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *     responses:
- *       200:
- *         description: Task found
- *       404:
- *         description: Task not found
+ *     security:
+ *       - bearerAuth: []
  */
-router.get('/:id', roleMiddleware.isCollaboratorOrAbove, TaskController.getTaskById);
+router.get('/:id', verifyToken, blockIfMustResetPassword, TaskController.getTaskById);
 
 /**
  * @swagger
@@ -62,36 +56,16 @@ router.get('/:id', roleMiddleware.isCollaboratorOrAbove, TaskController.getTaskB
  *   post:
  *     summary: Create a new task
  *     tags: [Tasks]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - title
- *             properties:
- *               title:
- *                 type: string
- *               description:
- *                 type: string
- *               due_date:
- *                 type: string
- *               priority:
- *                 type: string
- *               status:
- *                 type: string
- *               created_by:
- *                 type: integer
- *     responses:
- *       201:
- *         description: Task created successfully
- *       400:
- *         description: Validation error
- *       403:
- *         description: Forbidden
+ *     security:
+ *       - bearerAuth: []
  */
-router.post('/', roleMiddleware.isProjectManager, TaskController.createTask);
+router.post(
+  '/',
+  verifyToken,
+  blockIfMustResetPassword,
+  requireRole('Admin', 'Project Manager'),
+  TaskController.createTask
+);
 
 /**
  * @swagger
@@ -99,34 +73,10 @@ router.post('/', roleMiddleware.isProjectManager, TaskController.createTask);
  *   put:
  *     summary: Update a task
  *     tags: [Tasks]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               title:
- *                 type: string
- *               description:
- *                 type: string
- *               priority:
- *                 type: string
- *               status:
- *                 type: string
- *     responses:
- *       200:
- *         description: Task updated successfully
- *       404:
- *         description: Task not found
+ *     security:
+ *       - bearerAuth: []
  */
-router.put('/:id', roleMiddleware.isCollaboratorOrAbove, TaskController.updateTask);
+router.put('/:id', verifyToken, blockIfMustResetPassword, TaskController.updateTask);
 
 /**
  * @swagger
@@ -134,18 +84,15 @@ router.put('/:id', roleMiddleware.isCollaboratorOrAbove, TaskController.updateTa
  *   delete:
  *     summary: Delete a task
  *     tags: [Tasks]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *     responses:
- *       200:
- *         description: Task deleted successfully
- *       404:
- *         description: Task not found
+ *     security:
+ *       - bearerAuth: []
  */
-router.delete('/:id', roleMiddleware.isProjectManager, TaskController.deleteTask);
+router.delete(
+  '/:id',
+  verifyToken,
+  blockIfMustResetPassword,
+  requireRole('Admin', 'Project Manager'),
+  TaskController.deleteTask
+);
 
 module.exports = router;

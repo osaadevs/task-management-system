@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const CommentController = require('../controllers/commentController');
-const roleMiddleware = require('../middleware/roleMiddleware');
+const { verifyToken, requireRole } = require('../middleware/authMiddleware');
+const { blockIfMustResetPassword } = require('../middleware/requirePasswordReset');
 
 /**
  * @swagger
@@ -9,20 +10,10 @@ const roleMiddleware = require('../middleware/roleMiddleware');
  *   get:
  *     summary: Get all comments for a task
  *     tags: [Comments]
- *     parameters:
- *       - in: path
- *         name: task_id
- *         required: true
- *         schema:
- *           type: integer
- *         description: Task ID
- *     responses:
- *       200:
- *         description: List of comments
- *       500:
- *         description: Server error
+ *     security:
+ *       - bearerAuth: []
  */
-router.get('/:task_id', roleMiddleware.isCollaboratorOrAbove, CommentController.getCommentsByTask);
+router.get('/:task_id', verifyToken, blockIfMustResetPassword, CommentController.getCommentsByTask);
 
 /**
  * @swagger
@@ -30,30 +21,10 @@ router.get('/:task_id', roleMiddleware.isCollaboratorOrAbove, CommentController.
  *   post:
  *     summary: Add a comment to a task
  *     tags: [Comments]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - task_id
- *               - user_id
- *               - content
- *             properties:
- *               task_id:
- *                 type: integer
- *               user_id:
- *                 type: integer
- *               content:
- *                 type: string
- *     responses:
- *       201:
- *         description: Comment added successfully
- *       400:
- *         description: Validation error
+ *     security:
+ *       - bearerAuth: []
  */
-router.post('/', roleMiddleware.isCollaboratorOrAbove, CommentController.addComment);
+router.post('/', verifyToken, blockIfMustResetPassword, CommentController.addComment);
 
 /**
  * @swagger
@@ -61,19 +32,15 @@ router.post('/', roleMiddleware.isCollaboratorOrAbove, CommentController.addComm
  *   delete:
  *     summary: Delete a comment
  *     tags: [Comments]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: Comment ID
- *     responses:
- *       200:
- *         description: Comment deleted successfully
- *       404:
- *         description: Comment not found
+ *     security:
+ *       - bearerAuth: []
  */
-router.delete('/:id', roleMiddleware.isProjectManager, CommentController.deleteComment);
+router.delete(
+  '/:id',
+  verifyToken,
+  blockIfMustResetPassword,
+  requireRole('Admin', 'Project Manager'),
+  CommentController.deleteComment
+);
 
 module.exports = router;

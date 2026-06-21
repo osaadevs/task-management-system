@@ -560,3 +560,337 @@ td {
     align-items: flex-start;
   }
 }
+
+/* Enhanced UI */
+.btn {
+  transform: translateY(0);
+}
+
+.btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.view-toggle {
+  display: inline-flex;
+  background: var(--bg-soft);
+  border-radius: 12px;
+  padding: 4px;
+  border: 1px solid var(--border);
+}
+
+.view-toggle button {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  padding: 8px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.view-toggle button.is-active,
+.view-toggle button:hover {
+  background: var(--panel);
+  color: var(--text);
+}
+
+.search-input {
+  min-width: 220px;
+}
+
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  display: inline-block;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-state {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.kanban__column--drop {
+  border-color: rgba(79, 140, 255, 0.55);
+  box-shadow: inset 0 0 0 1px rgba(79, 140, 255, 0.35);
+}
+
+.task-card--dragging {
+  opacity: 0.55;
+  transform: rotate(1deg);
+}
+
+.task-card__assignee {
+  color: var(--primary);
+}
+
+.task-table__row {
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.task-table__row:hover {
+  background: rgba(79, 140, 255, 0.06);
+}
+
+.table-desc {
+  font-size: 0.82rem;
+  margin-top: 4px;
+}
+
+.table-select {
+  padding: 6px 8px;
+  font-size: 0.85rem;
+}
+
+.table-empty {
+  text-align: center;
+  padding: 24px;
+}
+
+.table-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.status-badge {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+}
+
+.status-badge--active {
+  background: rgba(61, 220, 151, 0.15);
+  color: var(--success);
+}
+
+.status-badge--inactive {
+  background: rgba(255, 107, 107, 0.15);
+  color: #ff9b9b;
+}
+
+.form-actions-inline {
+  display: flex;
+  gap: 10px;
+}
+
+.assignee-fieldset {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.assignee-fieldset legend {
+  padding: 0 6px;
+  color: var(--text-muted);
+}
+
+.assignee-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.assignee-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: 0.15s ease;
+}
+
+.assignee-chip:hover {
+  border-color: rgba(79, 140, 255, 0.4);
+}
+
+.assignee-chip input {
+  width: auto;
+}
+
+.notification-panel {
+  position: relative;
+}
+
+.notification-bell {
+  position: relative;
+  border: 1px solid var(--border);
+  background: var(--bg-soft);
+  color: var(--text);
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.notification-bell:hover {
+  border-color: rgba(79, 140, 255, 0.45);
+  transform: translateY(-1px);
+}
+
+.notification-bell__badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--danger);
+  color: white;
+  font-size: 0.7rem;
+  display: grid;
+  place-items: center;
+  padding: 0 4px;
+}
+
+.notification-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: min(360px, 85vw);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  z-index: 40;
+  overflow: hidden;
+  animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.notification-dropdown__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.notification-dropdown__list {
+  max-height: 360px;
+  overflow: auto;
+}
+
+.notification-dropdown__empty {
+  padding: 20px 16px;
+}
+
+.notification-item {
+  width: 100%;
+  display: flex;
+  gap: 12px;
+  text-align: left;
+  padding: 14px 16px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.15s ease;
+}
+
+.notification-item:hover {
+  background: rgba(79, 140, 255, 0.06);
+}
+
+.notification-item.is-read {
+  opacity: 0.65;
+}
+
+.notification-item p {
+  margin: 4px 0;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+.notification-item time {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.notification-item__icon {
+  font-size: 1.2rem;
+}
+
+.toast {
+  animation: toastIn 0.25s ease;
+}
+
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.toast strong {
+  display: block;
+  margin-bottom: 2px;
+}
+
+.toast span {
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+.toast--assignment {
+  border-color: rgba(79, 140, 255, 0.35);
+}
+
+.toast--deadline {
+  border-color: rgba(255, 179, 71, 0.35);
+}
+
+select,
+input,
+textarea,
+.btn,
+.task-card,
+.navbar__links a {
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: rgba(79, 140, 255, 0.55);
+  box-shadow: 0 0 0 3px rgba(79, 140, 255, 0.12);
+}
+

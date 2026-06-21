@@ -1,35 +1,67 @@
 const CommentModel = require('../models/commentModel');
+const TaskModel = require('../models/taskModel');
+const { errorResponse } = require('../utils/errors');
+const { notifyUsers } = require('../services/notificationService');
+const { emitTaskUpdated } = require('../services/socketService');
 
 const CommentController = {
-
   getCommentsByTask: (req, res) => {
     const { task_id } = req.params;
     CommentModel.getCommentsByTask(task_id, (err, results) => {
       if (err) {
-        return res.status(500).json({ error: 'Failed to get comments', message: err.message });
+        return errorResponse(res, 500, 'COMMENT_FETCH_ERROR', 'Failed to get comments', err.message);
       }
       res.status(200).json({ success: true, data: results });
     });
   },
 
   addComment: (req, res) => {
-    const { task_id, user_id, content } = req.body;
+    const { task_id, content } = req.body;
 
-    if (!content) {
-      return res.status(400).json({ error: 'Comment content is required' });
+    if (!content || !content.trim()) {
+      return errorResponse(res, 400, 'VALIDATION_ERROR', 'Comment content is required');
     }
 
-    if (!task_id || !user_id) {
-      return res.status(400).json({ error: 'Task ID and User ID are required' });
+    if (!task_id) {
+      return errorResponse(res, 400, 'VALIDATION_ERROR', 'Task ID is required');
     }
 
-    const commentData = { task_id, user_id, content };
+    const commentData = {
+      task_id,
+      user_id: req.user.id,
+      content: content.trim(),
+    };
 
-    CommentModel.addComment(commentData, (err, result) => {
+    CommentModel.addComment(commentData, async (err, result) => {
       if (err) {
-        return res.status(500).json({ error: 'Failed to add comment', message: err.message });
+        return errorResponse(res, 500, 'COMMENT_CREATE_ERROR', 'Failed to add comment', err.message);
       }
-      res.status(201).json({ success: true, message: 'Comment added successfully', commentId: result.insertId });
+
+      try {
+        TaskModel.getTaskById(task_id, async (_, tasks) => {
+          const taskTitle = tasks[0]?.title || `Task #${task_id}`;
+          TaskModel.getAssigneeIds(task_id, async (_, assignees) => {
+            const ids = (assignees || []).map((row) => row.user_id);
+            if (tasks[0]?.created_by) ids.push(tasks[0].created_by);
+            await notifyUsers(
+              ids.filter((userId) => userId !== req.user.id),
+              'New comment',
+              `New comment on "${taskTitle}"`,
+              'comment',
+              { emitTaskUpdate: true, taskId: Number(task_id) }
+            );
+          });
+        });
+      } catch (notifyErr) {
+        console.error('Comment notification error:', notifyErr.message);
+        emitTaskUpdated(Number(task_id));
+      }
+
+      res.status(201).json({
+        success: true,
+        message: 'Comment added successfully',
+        commentId: result.insertId,
+      });
     });
   },
 
@@ -37,15 +69,14 @@ const CommentController = {
     const { id } = req.params;
     CommentModel.deleteComment(id, (err, result) => {
       if (err) {
-        return res.status(500).json({ error: 'Failed to delete comment', message: err.message });
+        return errorResponse(res, 500, 'COMMENT_DELETE_ERROR', 'Failed to delete comment', err.message);
       }
       if (result.affectedRows === 0) {
-        return res.status(404).json({ error: 'Comment not found' });
+        return errorResponse(res, 404, 'COMMENT_NOT_FOUND', 'Comment not found');
       }
       res.status(200).json({ success: true, message: 'Comment deleted successfully' });
     });
-  }
-
+  },
 };
 
 module.exports = CommentController;

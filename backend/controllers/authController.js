@@ -1,44 +1,48 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('../config/db');
+const { PASSWORD_REGEX } = require('../utils/errors');
 
 exports.login = async (req, res) => {
   try {
-    const email = req.body.email;
-    const password = req.body.password;
-
-    console.log('email:', email);
-    console.log('password:', password);
+    const { email, password } = req.body;
 
     if (!email || !password) {
-      return res.status(400).json({ error: 'Bad Request', message: 'Email and password are required' });
+      return res.status(400).json({
+        errorCode: 'VALIDATION_ERROR',
+        message: 'Email and password are required',
+      });
     }
 
-    const query = `SELECT u.*, r.role_name 
-                   FROM users u 
-                   JOIN roles r ON u.role_id = r.id 
+    const query = `SELECT u.*, r.role_name
+                   FROM users u
+                   JOIN roles r ON u.role_id = r.id
                    WHERE u.email = ?`;
 
     const [results] = await db.promise().query(query, [email]);
 
-    console.log('Results:', results);
-
     if (results.length === 0) {
-      return res.status(401).json({ error: 'Unauthorized', message: 'Invalid email or password' });
+      return res.status(401).json({
+        errorCode: 'UNAUTHORIZED',
+        message: 'Invalid email or password',
+      });
     }
 
     const user = results[0];
-    console.log('password to compare:', password);
-    console.log('hash to compare:', user.password_hash);
-
     const match = await bcrypt.compare(password, user.password_hash);
 
     if (!match) {
-      return res.status(401).json({ error: 'Unauthorized', message: 'Invalid email or password' });
+      return res.status(401).json({
+        errorCode: 'UNAUTHORIZED',
+        message: 'Invalid email or password',
+      });
     }
 
     if (!user.is_active) {
-      return res.status(403).json({ error: 'Forbidden', message: 'Account is deactivated' });
+      return res.status(403).json({
+        errorCode: 'FORBIDDEN',
+        message: 'Account is deactivated',
+      });
     }
 
     const token = jwt.sign(
@@ -51,12 +55,20 @@ exports.login = async (req, res) => {
       message: 'Login successful',
       token,
       mustResetPassword: !!user.is_first_login,
-      user: { id: user.id, name: user.full_name, email: user.email, role: user.role_name }
+      user: {
+        id: user.id,
+        name: user.full_name,
+        email: user.email,
+        role: user.role_name,
+      },
     });
-
   } catch (err) {
     console.error('Login error:', err);
-    res.status(500).json({ error: 'Internal Server Error', message: err.message });
+    res.status(500).json({
+      errorCode: 'INTERNAL_ERROR',
+      message: 'Login failed',
+      description: err.message,
+    });
   }
 };
 
@@ -65,8 +77,11 @@ exports.resetPassword = async (req, res) => {
     const { newPassword } = req.body;
     const userId = req.user.id;
 
-    if (!newPassword || newPassword.length < 8) {
-      return res.status(400).json({ error: 'Bad Request', message: 'Password must be at least 8 characters' });
+    if (!newPassword || !PASSWORD_REGEX.test(newPassword)) {
+      return res.status(400).json({
+        errorCode: 'VALIDATION_ERROR',
+        message: 'Password must be at least 8 characters and include upper, lower, and a number',
+      });
     }
 
     const hashed = await bcrypt.hash(newPassword, 10);
@@ -78,6 +93,10 @@ exports.resetPassword = async (req, res) => {
     res.json({ message: 'Password updated successfully' });
   } catch (err) {
     console.error('Reset password error:', err);
-    res.status(500).json({ error: 'Internal Server Error', message: err.message });
+    res.status(500).json({
+      errorCode: 'INTERNAL_ERROR',
+      message: 'Password reset failed',
+      description: err.message,
+    });
   }
 };

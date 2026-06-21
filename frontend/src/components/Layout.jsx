@@ -3,17 +3,20 @@ import Navbar from './Navbar';
 import { useSocket } from '../hooks/useSocket';
 
 export default function Layout() {
-  const { connected, notifications, dismissNotification } = useSocket();
+  const { connected, liveNotifications, dismissLiveNotification } = useSocket();
 
   return (
     <div className="app-shell">
       <Navbar connected={connected} />
-      {notifications.length > 0 && (
+      {liveNotifications.length > 0 && (
         <div className="toast-stack">
-          {notifications.slice(0, 3).map((item) => (
-            <div key={item.id} className="toast">
-              <span>{item.message || 'New notification'}</span>
-              <button type="button" onClick={() => dismissNotification(item.id)}>
+          {liveNotifications.map((item) => (
+            <div key={item.id} className={`toast toast--${item.type || 'info'}`}>
+              <div>
+                <strong>{item.title || 'Notification'}</strong>
+                <span>{item.message || 'New update'}</span>
+              </div>
+              <button type="button" onClick={() => dismissLiveNotification(item.id)}>
                 ×
               </button>
             </div>

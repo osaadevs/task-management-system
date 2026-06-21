@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
-import { useAuth, useRole } from '../context/AuthContext';
+import { useRole } from '../context/AuthContext';
 
 export default function CommentSection({ taskId }) {
-  const { user } = useAuth();
   const { canManageTasks } = useRole();
   const [comments, setComments] = useState([]);
   const [content, setContent] = useState('');
@@ -32,7 +31,6 @@ export default function CommentSection({ taskId }) {
     try {
       await api.addComment({
         task_id: taskId,
-        user_id: user.id,
         content: content.trim(),
       });
       setContent('');
@@ -65,7 +63,7 @@ export default function CommentSection({ taskId }) {
             <li key={comment.id}>
               <div>
                 <strong>{comment.user_name || `User ${comment.user_id}`}</strong>
-                <p>{comment.content}</p>
+                <p>{comment.comment_text || comment.content}</p>
               </div>
               {canManageTasks && (
                 <button

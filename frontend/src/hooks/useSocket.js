@@ -1,29 +1,46 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
+import { getStoredAuth } from '../api';
 
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
 
 export function useSocket(enabled = true) {
   const [connected, setConnected] = useState(false);
-  const [notifications, setNotifications] = useState([]);
+  const [liveNotifications, setLiveNotifications] = useState([]);
+
+  const dismissLiveNotification = useCallback((id) => {
+    setLiveNotifications((prev) => prev.filter((item) => item.id !== id));
+  }, []);
 
   useEffect(() => {
     if (!enabled) return undefined;
 
-    const socket = io(SOCKET_URL, { transports: ['websocket', 'polling'] });
+    const auth = getStoredAuth();
+    if (!auth?.token) return undefined;
+
+    const socket = io(SOCKET_URL, {
+      auth: { token: auth.token },
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+    });
 
     socket.on('connect', () => setConnected(true));
     socket.on('disconnect', () => setConnected(false));
 
     socket.on('notification', (payload) => {
-      setNotifications((prev) => [payload, ...prev].slice(0, 20));
+      const item = {
+        ...payload,
+        id: payload.id || `${Date.now()}-${Math.random()}`,
+      };
+      setLiveNotifications((prev) => [item, ...prev].slice(0, 5));
+      window.dispatchEvent(new CustomEvent('tms:notification', { detail: item }));
     });
 
     socket.on('taskUpdated', () => {
-      setNotifications((prev) => [
-        { id: Date.now(), message: 'A task was updated', type: 'info' },
-        ...prev,
-      ].slice(0, 20));
+      window.dispatchEvent(new CustomEvent('tms:tasks-changed'));
     });
 
     return () => {
@@ -31,9 +48,5 @@ export function useSocket(enabled = true) {
     };
   }, [enabled]);
 
-  const dismissNotification = (id) => {
-    setNotifications((prev) => prev.filter((item) => item.id !== id));
-  };
-
-  return { connected, notifications, dismissNotification };
+  return { connected, liveNotifications, dismissLiveNotification };
 }

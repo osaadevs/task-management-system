@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth, useRole } from '../context/AuthContext';
+import NotificationPanel from './NotificationPanel';
 
 export default function Navbar({ connected }) {
   const { user, logout } = useAuth();
@@ -17,25 +18,20 @@ export default function Navbar({ connected }) {
       </div>
 
       <nav className="navbar__links">
-        <Link
-          to="/"
-          className={location.pathname === '/' ? 'active' : ''}
-        >
-          Board
+        <Link to="/" className={location.pathname === '/' ? 'active' : ''}>
+          Tasks
         </Link>
         {canViewAdmin && (
-          <Link
-            to="/admin"
-            className={location.pathname === '/admin' ? 'active' : ''}
-          >
+          <Link to="/admin" className={location.pathname === '/admin' ? 'active' : ''}>
             Users
           </Link>
         )}
       </nav>
 
       <div className="navbar__user">
-        <div className="status-pill" data-connected={connected}>
-          {connected ? 'Live' : 'Offline'}
+        <NotificationPanel />
+        <div className="status-pill" data-connected={connected} title="WebSocket connection">
+          {connected ? '● Live' : '○ Offline'}
         </div>
         <div className="navbar__profile">
           <strong>{user?.name}</strong>
