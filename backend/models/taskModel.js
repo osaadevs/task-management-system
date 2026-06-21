@@ -3,7 +3,7 @@ const db = require('../config/db');
 const TaskModel = {
   getAllTasks: (filters, callback) => {
     let sql = `
-      SELECT DISTINCT tasks.*,
+      SELECT tasks.*,
         COALESCE(
           (SELECT json_agg(json_build_object('id', u.id, 'full_name', u.full_name, 'email', u.email))
            FROM task_assignments ta2
@@ -12,12 +12,17 @@ const TaskModel = {
           '[]'::json
         ) AS assignees
       FROM tasks
-      LEFT JOIN task_assignments ta ON ta.task_id = tasks.id
       WHERE 1=1`;
     const values = [];
 
     if (filters.userRole === 'Collaborator') {
-      sql += ` AND (ta.user_id = ? OR tasks.created_by = ?)`;
+      sql += ` AND (
+        tasks.created_by = ?
+        OR EXISTS (
+          SELECT 1 FROM task_assignments ta
+          WHERE ta.task_id = tasks.id AND ta.user_id = ?
+        )
+      )`;
       values.push(filters.userId, filters.userId);
     }
 
