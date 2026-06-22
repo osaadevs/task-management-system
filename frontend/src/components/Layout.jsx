@@ -1,9 +1,11 @@
 import { Outlet } from 'react-router-dom';
 import Navbar from './Navbar';
 import { useSocket } from '../hooks/useSocket';
+import { useAuth } from '../context/AuthContext';
 
 export default function Layout() {
-  const { connected, liveNotifications, dismissLiveNotification } = useSocket();
+  const { token } = useAuth();
+  const { connected, liveNotifications, dismissLiveNotification } = useSocket(Boolean(token), token);
 
   return (
     <div className="app-shell">

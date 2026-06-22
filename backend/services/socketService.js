@@ -25,7 +25,7 @@ function initSocket(server, allowedOrigins) {
   });
 
   io.on('connection', (socket) => {
-    socket.join(`user:${socket.user.id}`);
+    socket.join(`user:${Number(socket.user.id)}`);
     console.log(`Socket connected: user ${socket.user.id}`);
     socket.on('disconnect', () => {
       console.log(`Socket disconnected: user ${socket.user.id}`);
@@ -41,7 +41,7 @@ function getIO() {
 
 function emitToUser(userId, event, payload) {
   if (!io) return;
-  io.to(`user:${userId}`).emit(event, payload);
+  io.to(`user:${Number(userId)}`).emit(event, payload);
 }
 
 function emitTaskUpdated(taskId) {

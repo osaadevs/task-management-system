@@ -59,9 +59,11 @@ function isSelectQuery(sql) {
 }
 
 function toMutationResult(result) {
+  const row = result.rows[0];
   return {
     affectedRows: result.rowCount,
-    insertId: result.rows[0]?.id,
+    insertId: row?.id,
+    createdAt: row?.created_at,
   };
 }
 

@@ -1,10 +1,26 @@
 import { useCallback, useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
-import { getStoredAuth } from '../api';
+import { API_BASE } from '../api';
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
+function resolveSocketUrl() {
+  const explicit = import.meta.env.VITE_SOCKET_URL;
+  if (explicit) {
+    return explicit.replace(/\/$/, '');
+  }
 
-export function useSocket(enabled = true) {
+  const apiBase = import.meta.env.VITE_API_BASE || API_BASE || '';
+  if (apiBase.startsWith('http')) {
+    return apiBase.replace(/\/api\/?$/, '');
+  }
+
+  if (typeof window !== 'undefined' && (apiBase === '/api' || apiBase.startsWith('/'))) {
+    return window.location.origin;
+  }
+
+  return 'http://localhost:5000';
+}
+
+export function useSocket(enabled = true, token = null) {
   const [connected, setConnected] = useState(false);
   const [liveNotifications, setLiveNotifications] = useState([]);
 
@@ -13,13 +29,14 @@ export function useSocket(enabled = true) {
   }, []);
 
   useEffect(() => {
-    if (!enabled) return undefined;
+    if (!enabled || !token) {
+      setConnected(false);
+      return undefined;
+    }
 
-    const auth = getStoredAuth();
-    if (!auth?.token) return undefined;
-
-    const socket = io(SOCKET_URL, {
-      auth: { token: auth.token },
+    const socketUrl = resolveSocketUrl();
+    const socket = io(socketUrl, {
+      auth: { token },
       transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionAttempts: 10,
@@ -29,6 +46,10 @@ export function useSocket(enabled = true) {
 
     socket.on('connect', () => setConnected(true));
     socket.on('disconnect', () => setConnected(false));
+    socket.on('connect_error', (err) => {
+      console.warn('Socket connection error:', err.message);
+      setConnected(false);
+    });
 
     socket.on('notification', (payload) => {
       const item = {
@@ -45,8 +66,9 @@ export function useSocket(enabled = true) {
 
     return () => {
       socket.disconnect();
+      setConnected(false);
     };
-  }, [enabled]);
+  }, [enabled, token]);
 
   return { connected, liveNotifications, dismissLiveNotification };
 }

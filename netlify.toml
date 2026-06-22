@@ -5,6 +5,8 @@
 
 [build.environment]
   NODE_VERSION = "20"
+  VITE_API_BASE = "https://task-management-system-backend-z9y4.onrender.com/api"
+  VITE_SOCKET_URL = "https://task-management-system-backend-z9y4.onrender.com"
 
 # React Router — send all routes to index.html
 [[redirects]]

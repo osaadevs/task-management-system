@@ -7,7 +7,10 @@ const NotificationModel = {
                  RETURNING id, user_id, title, message, type, is_read, created_at`;
     db.query(sql, [data.userId, data.title, data.message, data.type], (err, result) => {
       if (err) return callback(err);
-      callback(null, { insertId: result.insertId });
+      callback(null, {
+        insertId: result.insertId,
+        createdAt: result.createdAt,
+      });
     });
   },
 

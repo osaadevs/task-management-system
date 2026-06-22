@@ -32,9 +32,22 @@ export default function NotificationPanel() {
   useEffect(() => {
     loadNotifications();
     const onNotification = () => loadNotifications();
+    const onTasksChanged = () => loadNotifications();
     window.addEventListener('tms:notification', onNotification);
-    return () => window.removeEventListener('tms:notification', onNotification);
+    window.addEventListener('tms:tasks-changed', onTasksChanged);
+    const interval = setInterval(loadNotifications, 15000);
+    return () => {
+      window.removeEventListener('tms:notification', onNotification);
+      window.removeEventListener('tms:tasks-changed', onTasksChanged);
+      clearInterval(interval);
+    };
   }, []);
+
+  useEffect(() => {
+    if (open) {
+      loadNotifications();
+    }
+  }, [open]);
 
   useEffect(() => {
     const onClickOutside = (event) => {

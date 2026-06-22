@@ -72,13 +72,14 @@ export default function TaskModal({ task, onClose, onSaved, onDeleted }) {
   };
 
   const toggleAssignee = (userId) => {
+    const numericId = Number(userId);
     setForm((prev) => {
-      const exists = prev.assignee_ids.includes(userId);
+      const exists = prev.assignee_ids.some((id) => Number(id) === numericId);
       return {
         ...prev,
         assignee_ids: exists
-          ? prev.assignee_ids.filter((id) => id !== userId)
-          : [...prev.assignee_ids, userId],
+          ? prev.assignee_ids.filter((id) => Number(id) !== numericId)
+          : [...prev.assignee_ids, numericId],
       };
     });
   };
@@ -240,7 +241,7 @@ export default function TaskModal({ task, onClose, onSaved, onDeleted }) {
                     <label key={member.id} className="assignee-chip">
                       <input
                         type="checkbox"
-                        checked={form.assignee_ids.includes(member.id)}
+                        checked={form.assignee_ids.some((id) => Number(id) === Number(member.id))}
                         onChange={() => toggleAssignee(member.id)}
                       />
                       <span>{member.name || member.full_name}</span>
