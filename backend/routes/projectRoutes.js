@@ -36,4 +36,13 @@ router.get('/', verifyToken, blockIfMustResetPassword, requireRole('Admin', 'Pro
  */
 router.get('/:id', verifyToken, blockIfMustResetPassword, requireRole('Admin', 'Project Manager', 'Collaborator'), ProjectController.getProjectById);
 
+/**
+ * @swagger
+ * /api/projects:
+ *   post:
+ *     summary: Create a new project
+ *     tags: [Projects]
+ */
+router.post('/', verifyToken, blockIfMustResetPassword, requireRole('Admin', 'Project Manager'), ProjectController.createProject);
+
 module.exports = router;

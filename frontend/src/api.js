@@ -121,6 +121,20 @@ export const api = {
     }).then(handleResponse);
   },
 
+  getProject(id) {
+    return fetch(`${API_BASE}/projects/${id}`, {
+      headers: buildHeaders(),
+    }).then(handleResponse);
+  },
+
+  createProject(project) {
+    return fetch(`${API_BASE}/projects`, {
+      method: 'POST',
+      headers: buildHeaders(),
+      body: JSON.stringify(project),
+    }).then(handleResponse);
+  },
+
   getTeamMembers() {
     return fetch(`${API_BASE}/users/team`, {
       headers: buildHeaders(),

@@ -1,4 +1,4 @@
-import { Link, useLocation, useSearchParams } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useAuth, useRole } from '../context/AuthContext';
 
 function getInitials(name = '') {
@@ -11,22 +11,15 @@ function getInitials(name = '') {
 }
 
 const NAV = [
-  { to: '/?view=overview', label: 'Dashboard', view: 'overview', icon: '▦' },
-  { to: '/?view=board', label: 'My Tasks', view: 'board', icon: '☑' },
-  { to: '/admin', label: 'Team', icon: '👥', adminOnly: true },
+  { to: '/', label: 'Dashboard', match: (path) => path === '/', icon: '▦' },
+  { to: '/projects', label: 'Projects', match: (path) => path.startsWith('/projects'), icon: '📁' },
+  { to: '/admin', label: 'Team', match: (path) => path.startsWith('/admin'), icon: '👥', adminOnly: true },
 ];
 
 export default function Sidebar() {
   const { user, logout } = useAuth();
-  const { canViewAdmin } = useRole();
+  const { canViewAdmin, canManageTasks } = useRole();
   const location = useLocation();
-  const [searchParams] = useSearchParams();
-  const currentView = searchParams.get('view') || 'overview';
-
-  const isActive = (item) => {
-    if (item.to.startsWith('/admin')) return location.pathname.startsWith('/admin');
-    return location.pathname === '/' && item.view === currentView;
-  };
 
   return (
     <aside className="sidebar">
@@ -53,7 +46,7 @@ export default function Sidebar() {
           <Link
             key={item.label}
             to={item.to}
-            className={`sidebar__link ${isActive(item) ? 'is-active' : ''}`}
+            className={`sidebar__link ${item.match(location.pathname) ? 'is-active' : ''}`}
           >
             <span className="sidebar__link-icon" aria-hidden="true">
               {item.icon}
@@ -63,11 +56,13 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      <div className="sidebar__mid">
-        <Link to="/?view=board&create=1" className="sidebar__cta">
-          + New Task
-        </Link>
-      </div>
+      {canManageTasks && (
+        <div className="sidebar__mid">
+          <Link to="/projects?create=1" className="sidebar__cta">
+            + New Project
+          </Link>
+        </div>
+      )}
 
       <div className="sidebar__footer">
         <div className="sidebar__profile">
