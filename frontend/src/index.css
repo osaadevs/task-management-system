@@ -1417,8 +1417,12 @@ textarea:focus,
 }
 
 .kanban__column--todo { --col-accent: #9ca3af; }
-.kanban__column--progress { --col-accent: var(--warning); }
-.kanban__column--done { --col-accent: var(--success); }
+.kanban__column--progress { --col-accent: var(--secondary); }
+.kanban__column--done { --col-accent: var(--tertiary); }
+
+.kanban__dot--todo { background: #9ca3af; }
+.kanban__dot--progress { background: var(--secondary); }
+.kanban__dot--done { background: var(--tertiary); }
 
 .kanban__column header {
   display: flex;
@@ -1671,18 +1675,52 @@ textarea:focus,
 [data-theme='dark'] .tag--design { background: rgba(139, 92, 246, 0.2); color: #c4b5fd; }
 [data-theme='dark'] .tag--ops { background: rgba(20, 184, 166, 0.2); color: #5eead4; }
 
+.task-card__progress-wrap {
+  margin-top: 10px;
+}
+
+.task-card__progress-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.task-card__status-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.task-card__status-label--todo { color: #6b7280; }
+.task-card__status-label--progress { color: var(--secondary); }
+.task-card__status-label--done { color: var(--tertiary); }
+
 .task-card__progress {
-  height: 4px;
+  height: 5px;
   background: var(--surface-muted);
   border-radius: 999px;
-  margin-top: 10px;
   overflow: hidden;
 }
 
 .task-card__progress-bar {
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, var(--primary), var(--secondary));
+  transition: width 0.35s var(--ease);
+}
+
+.task-card__progress-bar--todo {
+  background: linear-gradient(90deg, #9ca3af, #d1d5db);
+}
+
+.task-card__progress-bar--progress {
+  background: linear-gradient(90deg, var(--secondary), var(--primary));
+}
+
+.task-card__progress-bar--done {
+  background: linear-gradient(90deg, var(--tertiary), var(--success));
 }
 
 .task-card__status-pill {

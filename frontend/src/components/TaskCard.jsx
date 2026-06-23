@@ -30,9 +30,9 @@ function isOverdue(dueDate, status) {
 }
 
 function progressForStatus(status) {
-  if (status === 'Completed') return 100;
-  if (status === 'In Progress') return 65;
-  return 20;
+  if (status === 'Completed') return { percent: 100, label: 'Completed', tone: 'done' };
+  if (status === 'In Progress') return { percent: 65, label: 'In Progress', tone: 'progress' };
+  return { percent: 20, label: 'To Do', tone: 'todo' };
 }
 
 function getInitials(name = '') {
@@ -82,8 +82,19 @@ export default function TaskCard({
       </div>
       <h3>{task.title}</h3>
       {task.description && <p>{task.description}</p>}
-      <div className="task-card__progress">
-        <div className="task-card__progress-bar" style={{ width: `${progress}%` }} />
+      <div className="task-card__progress-wrap">
+        <div className="task-card__progress-meta">
+          <span className={`task-card__status-label task-card__status-label--${progress.tone}`}>
+            {progress.label}
+          </span>
+          <span className="task-card__status-pill">{progress.percent}%</span>
+        </div>
+        <div className="task-card__progress">
+          <div
+            className={`task-card__progress-bar task-card__progress-bar--${progress.tone}`}
+            style={{ width: `${progress.percent}%` }}
+          />
+        </div>
       </div>
       <footer className="task-card__footer">
         {task.due_date && (
@@ -95,7 +106,6 @@ export default function TaskCard({
             })}
           </time>
         )}
-        <span className="task-card__status-pill">{progress}%</span>
         {assigneeList && (
           <div className="task-card__avatars">
             {assigneeList.slice(0, 3).map((name) => (
