@@ -13,21 +13,19 @@ export default function Layout() {
       <Sidebar />
       <div className="app-main">
         <AppTopBar connected={connected} />
-        {liveNotifications.length > 0 && (
-          <div className="toast-stack">
-            {liveNotifications.map((item) => (
-              <div key={item.id} className={`toast toast--${item.type || 'info'}`}>
-                <div>
-                  <strong>{item.title || 'Notification'}</strong>
-                  <span>{item.message || 'New update'}</span>
-                </div>
-                <button type="button" onClick={() => dismissLiveNotification(item.id)}>
-                  ×
-                </button>
+        <div className="toast-stack" role="status" aria-live="polite">
+          {liveNotifications.map((item) => (
+            <div key={item.id} className={`toast toast--${item.type || 'info'}`}>
+              <div>
+                <strong>{item.title || 'Notification'}</strong>
+                <span>{item.message || 'New update'}</span>
               </div>
-            ))}
-          </div>
-        )}
+              <button type="button" onClick={() => dismissLiveNotification(item.id)}>
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
         <main className="page-content">
           <Outlet />
         </main>

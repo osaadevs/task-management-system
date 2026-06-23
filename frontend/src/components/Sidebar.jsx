@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth, useRole } from '../context/AuthContext';
+import { GridIcon, FolderIcon, UsersIcon } from './Icons';
 
 function getInitials(name = '') {
   return name
@@ -11,9 +12,9 @@ function getInitials(name = '') {
 }
 
 const NAV = [
-  { to: '/', label: 'Dashboard', match: (path) => path === '/', icon: '▦' },
-  { to: '/projects', label: 'Projects', match: (path) => path.startsWith('/projects'), icon: '📁' },
-  { to: '/admin', label: 'Team', match: (path) => path.startsWith('/admin'), icon: '👥', adminOnly: true },
+  { to: '/', label: 'Dashboard', match: (path) => path === '/', icon: GridIcon },
+  { to: '/projects', label: 'Projects', match: (path) => path.startsWith('/projects'), icon: FolderIcon },
+  { to: '/admin', label: 'Team', match: (path) => path.startsWith('/admin'), icon: UsersIcon, adminOnly: true },
 ];
 
 export default function Sidebar() {
@@ -47,9 +48,10 @@ export default function Sidebar() {
             key={item.label}
             to={item.to}
             className={`sidebar__link ${item.match(location.pathname) ? 'is-active' : ''}`}
+            aria-current={item.match(location.pathname) ? 'page' : undefined}
           >
             <span className="sidebar__link-icon" aria-hidden="true">
-              {item.icon}
+              <item.icon size={18} />
             </span>
             {item.label}
           </Link>

@@ -44,6 +44,11 @@ export default function ResetPassword() {
     }
   };
 
+  const passwordError =
+    password.length > 0 && password.length < 8 ? 'Must be at least 8 characters.' : '';
+  const confirmError =
+    confirm.length > 0 && confirm !== password ? 'Passwords do not match.' : '';
+
   return (
     <div className="auth-page auth-page--animated">
       <AuthBackground />
@@ -63,7 +68,12 @@ export default function ResetPassword() {
             onChange={(e) => setPassword(e.target.value)}
             minLength={8}
             required
+            aria-invalid={Boolean(passwordError)}
+            aria-describedby={passwordError ? 'reset-password-error' : undefined}
           />
+          {passwordError && (
+            <span className="field-error" id="reset-password-error">{passwordError}</span>
+          )}
         </label>
 
         <label>
@@ -74,7 +84,12 @@ export default function ResetPassword() {
             onChange={(e) => setConfirm(e.target.value)}
             minLength={8}
             required
+            aria-invalid={Boolean(confirmError)}
+            aria-describedby={confirmError ? 'reset-confirm-error' : undefined}
           />
+          {confirmError && (
+            <span className="field-error" id="reset-confirm-error">{confirmError}</span>
+          )}
         </label>
 
         <button type="submit" className="btn btn--primary btn--full" disabled={loading}>

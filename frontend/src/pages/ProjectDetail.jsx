@@ -7,6 +7,7 @@ import TaskTableView from '../components/TaskTableView';
 import TaskModal from '../components/TaskModal';
 import StatCard from '../components/StatCard';
 import CompletionGauge from '../components/CompletionGauge';
+import { ClipboardIcon, TargetIcon, CheckIcon } from '../components/Icons';
 
 export default function ProjectDetail() {
   const { projectId } = useParams();
@@ -124,7 +125,7 @@ export default function ProjectDetail() {
 
       <header className="page-header page-header--hero">
         <div>
-          <h2>{project?.project_name || 'Project'}</h2>
+          <h1>{project?.project_name || 'Project'}</h1>
           <p className="muted">
             {project?.description || 'Manage tasks for this project.'}
           </p>
@@ -146,9 +147,9 @@ export default function ProjectDetail() {
 
       {!loading && !error && (
         <div className="stats-row stats-row--compact">
-          <StatCard label="Total Tasks" value={stats.total} accent="indigo" icon="📋" />
-          <StatCard label="In Progress" value={stats.inProgress} accent="blue" icon="◎" />
-          <StatCard label="Completed" value={stats.done} accent="green" icon="✓" />
+          <StatCard label="Total Tasks" value={stats.total} accent="indigo" icon={<ClipboardIcon size={22} />} />
+          <StatCard label="In Progress" value={stats.inProgress} accent="blue" icon={<TargetIcon size={22} />} />
+          <StatCard label="Completed" value={stats.done} accent="green" icon={<CheckIcon size={22} />} />
           <CompletionGauge percent={completionRate} label="Progress" />
         </div>
       )}
@@ -185,7 +186,7 @@ export default function ProjectDetail() {
         </div>
       ) : displayedTasks.length === 0 && !error ? (
         <div className="empty-state">
-          <span className="empty-state__icon">📋</span>
+          <span className="empty-state__icon" aria-hidden="true"><ClipboardIcon size={40} /></span>
           <h3>No tasks in this project</h3>
           <p className="muted">Add the first task to start tracking work.</p>
           {canManageTasks && (

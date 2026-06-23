@@ -41,6 +41,7 @@ export default function CommentSection({ taskId }) {
   };
 
   const handleDelete = async (id) => {
+    if (!window.confirm('Delete this comment? This cannot be undone.')) return;
     try {
       await api.deleteComment(id);
       await loadComments();

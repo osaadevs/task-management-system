@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { api } from '../api';
-import { BellIcon } from './Icons';
+import { BellIcon, PinIcon, RefreshIcon, CommentIcon, ClockIcon, UserIcon } from './Icons';
 
 const TYPE_ICONS = {
-  assignment: '📌',
-  status_change: '🔄',
-  comment: '💬',
-  deadline: '⏰',
-  admin_update: '👤',
-  info: '🔔',
+  assignment: PinIcon,
+  status_change: RefreshIcon,
+  comment: CommentIcon,
+  deadline: ClockIcon,
+  admin_update: UserIcon,
+  info: BellIcon,
 };
 
 export default function NotificationPanel() {
@@ -96,7 +96,9 @@ export default function NotificationPanel() {
             {items.length === 0 ? (
               <p className="muted notification-dropdown__empty">No notifications yet</p>
             ) : (
-              items.map((item) => (
+              items.map((item) => {
+                const Icon = TYPE_ICONS[item.type] || TYPE_ICONS.info;
+                return (
                 <button
                   key={item.id}
                   type="button"
@@ -104,7 +106,7 @@ export default function NotificationPanel() {
                   onClick={() => !item.is_read && handleMarkRead(item.id)}
                 >
                   <span className="notification-item__icon">
-                    {TYPE_ICONS[item.type] || TYPE_ICONS.info}
+                    <Icon size={18} />
                   </span>
                   <span>
                     <strong>{item.title}</strong>
@@ -112,7 +114,8 @@ export default function NotificationPanel() {
                     <time>{new Date(item.created_at).toLocaleString()}</time>
                   </span>
                 </button>
-              ))
+                );
+              })
             )}
           </div>
         </div>

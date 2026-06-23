@@ -4,7 +4,7 @@ import { api } from '../api';
 import { useAuth } from '../context/AuthContext';
 import AuthBackground from '../components/AuthBackground';
 import ThemeToggle from '../components/ThemeToggle';
-import { EyeIcon, EyeOffIcon, MailIcon } from '../components/Icons';
+import { EyeIcon, EyeOffIcon, MailIcon, InfoIcon } from '../components/Icons';
 
 export default function Login() {
   const { login } = useAuth();
@@ -120,15 +120,9 @@ export default function Login() {
         </form>
 
         <p className="auth-footer-note">
-          <span aria-hidden="true">ⓘ</span> Access is managed by your administrator
+          <span aria-hidden="true" className="auth-footer-note__icon"><InfoIcon size={14} /></span> Access is managed by your administrator
         </p>
       </div>
-
-      <footer className="auth-page-footer">
-        <span>Privacy Policy</span>
-        <span>Terms of Service</span>
-        <span>Help Center</span>
-      </footer>
     </div>
   );
 }

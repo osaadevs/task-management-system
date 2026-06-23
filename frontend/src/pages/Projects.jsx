@@ -4,6 +4,7 @@ import { api } from '../api';
 import { useAuth, useRole } from '../context/AuthContext';
 import ProjectCard from '../components/ProjectCard';
 import ProjectModal from '../components/ProjectModal';
+import { FolderIcon } from '../components/Icons';
 
 export default function Projects() {
   const { mustResetPassword } = useAuth();
@@ -59,7 +60,7 @@ export default function Projects() {
     <div className="projects-page page-enter">
       <header className="page-header">
         <div>
-          <h2>Projects</h2>
+          <h1>Projects</h1>
           <p className="muted">Each project contains its own tasks, board, and progress.</p>
         </div>
         <div className="page-header__actions">
@@ -87,7 +88,7 @@ export default function Projects() {
         </div>
       ) : displayed.length === 0 ? (
         <div className="empty-state">
-          <span className="empty-state__icon">📁</span>
+          <span className="empty-state__icon" aria-hidden="true"><FolderIcon size={40} /></span>
           <h3>No projects yet</h3>
           <p className="muted">Create a project first, then add tasks inside it.</p>
           {canManageTasks && (

@@ -140,11 +140,18 @@ export default function AdminUsers() {
     }
   };
 
+  const emailError =
+    !editId &&
+    form.email.trim().length > 0 &&
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())
+      ? 'Enter a valid email address.'
+      : '';
+
   return (
     <div className="admin-page page-enter">
       <header className="page-header page-header--split">
         <div>
-          <h2>Team Management</h2>
+          <h1>Team Management</h1>
           <p className="muted">Manage workspace members, roles, and access.</p>
         </div>
         <button
@@ -203,7 +210,12 @@ export default function AdminUsers() {
                 onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
                 required
                 disabled={Boolean(editId)}
+                aria-invalid={Boolean(emailError)}
+                aria-describedby={emailError ? 'invite-email-error' : undefined}
               />
+              {emailError && (
+                <span className="field-error" id="invite-email-error">{emailError}</span>
+              )}
             </label>
             <label>
               Role

@@ -152,6 +152,13 @@ export default function TaskModal({
 
   const readOnly = isCollaborator && !isNew;
 
+  const dueToday = new Date();
+  dueToday.setHours(0, 0, 0, 0);
+  const dueDateError =
+    !readOnly && form.due_date && new Date(form.due_date) < dueToday
+      ? 'Due date cannot be in the past'
+      : '';
+
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal modal--wide" onClick={(event) => event.stopPropagation()} role="dialog" aria-modal="true">
@@ -222,7 +229,12 @@ export default function TaskModal({
                 value={form.due_date}
                 onChange={(e) => updateField('due_date', e.target.value)}
                 disabled={readOnly}
+                aria-invalid={Boolean(dueDateError)}
+                aria-describedby={dueDateError ? 'task-duedate-error' : undefined}
               />
+              {dueDateError && (
+                <span className="field-error" id="task-duedate-error">{dueDateError}</span>
+              )}
             </label>
 
             {(isNew || canManageTasks) && !lockProject && (
