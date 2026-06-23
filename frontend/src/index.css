@@ -134,7 +134,7 @@ h3,
 /* ─── Page transitions ─── */
 
 .page-enter {
-  animation: pageEnter 0.35s var(--ease) both;
+  animation: pageEnter 0.35s var(--ease);
 }
 
 @keyframes pageEnter {
