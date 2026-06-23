@@ -6,8 +6,14 @@ const PRIORITY_CLASS = {
 
 const PRIORITY_LABEL = {
   Low: 'LOW',
-  Medium: 'MEDIUM',
-  High: 'HIGH PRIORITY',
+  Medium: 'MED',
+  High: 'HIGH',
+};
+
+const CATEGORY_TAG = {
+  High: { label: 'Dev', className: 'tag--dev' },
+  Medium: { label: 'Design', className: 'tag--design' },
+  Low: { label: 'Ops', className: 'tag--ops' },
 };
 
 function formatAssignees(task) {
@@ -21,6 +27,12 @@ function isOverdue(dueDate, status) {
   const due = new Date(dueDate);
   due.setHours(23, 59, 59, 999);
   return due < new Date();
+}
+
+function progressForStatus(status) {
+  if (status === 'Completed') return 100;
+  if (status === 'In Progress') return 65;
+  return 20;
 }
 
 function getInitials(name = '') {
@@ -44,10 +56,12 @@ export default function TaskCard({
   const assigneeList = formatAssignees(task);
   const overdue = isOverdue(task.due_date, task.status);
   const completed = task.status === 'Completed';
+  const category = CATEGORY_TAG[task.priority] || CATEGORY_TAG.Medium;
+  const progress = progressForStatus(task.status);
 
   return (
     <article
-      className={`task-card ${isDragging ? 'task-card--dragging' : ''} ${overdue ? 'task-card--overdue' : ''} ${completed ? 'task-card--done' : ''}`}
+      className={`task-card task-card--${task.priority?.toLowerCase()} ${isDragging ? 'task-card--dragging' : ''} ${overdue ? 'task-card--overdue' : ''} ${completed ? 'task-card--done' : ''}`}
       draggable={draggable}
       style={style}
       onDragStart={onDragStart}
@@ -59,13 +73,18 @@ export default function TaskCard({
         if (e.key === 'Enter' || e.key === ' ') onOpen(task);
       }}
     >
+      <div className={`task-card__accent task-card--${task.priority?.toLowerCase()}`} />
       <div className="task-card__top">
+        <span className={`task-card__tag ${category.className}`}>{category.label}</span>
         <span className={`priority-badge ${PRIORITY_CLASS[task.priority] || ''}`}>
           {PRIORITY_LABEL[task.priority] || task.priority}
         </span>
       </div>
       <h3>{task.title}</h3>
       {task.description && <p>{task.description}</p>}
+      <div className="task-card__progress">
+        <div className="task-card__progress-bar" style={{ width: `${progress}%` }} />
+      </div>
       <footer className="task-card__footer">
         {task.due_date && (
           <time dateTime={task.due_date} className={overdue ? 'task-card__due--overdue' : ''}>
@@ -76,6 +95,7 @@ export default function TaskCard({
             })}
           </time>
         )}
+        <span className="task-card__status-pill">{progress}%</span>
         {assigneeList && (
           <div className="task-card__avatars">
             {assigneeList.slice(0, 3).map((name) => (

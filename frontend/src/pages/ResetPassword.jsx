@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import { useAuth } from '../context/AuthContext';
+import AuthBackground from '../components/AuthBackground';
+import ThemeToggle from '../components/ThemeToggle';
 
 export default function ResetPassword() {
   const { mustResetPassword, clearMustReset } = useAuth();
@@ -43,8 +45,12 @@ export default function ResetPassword() {
   };
 
   return (
-    <div className="auth-page auth-page--light">
-      <form className="auth-card auth-card--narrow auth-card--centered auth-form" onSubmit={handleSubmit}>
+    <div className="auth-page auth-page--animated">
+      <AuthBackground />
+      <div className="auth-page__toolbar">
+        <ThemeToggle className="theme-toggle--floating" />
+      </div>
+      <form className="auth-card auth-card--narrow auth-card--centered auth-card--glass auth-form" onSubmit={handleSubmit}>
         <h1>Reset your password</h1>
         <p className="muted">This is your first login. Please set a new password to continue.</p>
         {error && <div className="alert alert--error">{error}</div>}

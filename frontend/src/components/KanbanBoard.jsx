@@ -2,9 +2,9 @@ import { useMemo, useState } from 'react';
 import TaskCard from './TaskCard';
 
 const COLUMNS = [
-  { status: 'To Do', accent: 'todo' },
-  { status: 'In Progress', accent: 'progress' },
-  { status: 'Completed', accent: 'done' },
+  { status: 'To Do', accent: 'todo', label: 'Backlog' },
+  { status: 'In Progress', accent: 'progress', label: 'In Progress' },
+  { status: 'Completed', accent: 'done', label: 'Review' },
 ];
 
 export default function KanbanBoard({ tasks, onOpenTask, onStatusChange, onAddTask }) {
@@ -30,7 +30,7 @@ export default function KanbanBoard({ tasks, onOpenTask, onStatusChange, onAddTa
 
   return (
     <div className="kanban">
-      {COLUMNS.map(({ status, accent }) => (
+      {COLUMNS.map(({ status, accent, label }) => (
         <section
           key={status}
           className={`kanban__column kanban__column--${accent} ${dropTarget === status ? 'kanban__column--drop' : ''}`}
@@ -45,7 +45,10 @@ export default function KanbanBoard({ tasks, onOpenTask, onStatusChange, onAddTa
           }}
         >
           <header>
-            <h2>{status}</h2>
+            <div className="kanban__column-title">
+              <span className={`kanban__dot kanban__dot--${accent}`} aria-hidden="true" />
+              <h2>{label}</h2>
+            </div>
             <span className="kanban__count">{grouped[status].length}</span>
           </header>
           <div className="kanban__list">

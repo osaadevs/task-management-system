@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import { useAuth } from '../context/AuthContext';
+import AuthBackground from '../components/AuthBackground';
+import ThemeToggle from '../components/ThemeToggle';
 
 export default function Login() {
   const { login } = useAuth();
@@ -39,8 +41,12 @@ export default function Login() {
   };
 
   return (
-    <div className="auth-page auth-page--light">
-      <div className="auth-card auth-card--centered">
+    <div className="auth-page auth-page--animated">
+      <AuthBackground />
+      <div className="auth-page__toolbar">
+        <ThemeToggle className="theme-toggle--floating" />
+      </div>
+      <div className="auth-card auth-card--centered auth-card--glass">
         <div className="auth-card__brand">
           <span className="auth-logo" aria-hidden="true">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none">

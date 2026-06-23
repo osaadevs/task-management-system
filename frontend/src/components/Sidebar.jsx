@@ -1,4 +1,4 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth, useRole } from '../context/AuthContext';
 
 function getInitials(name = '') {
@@ -11,8 +11,8 @@ function getInitials(name = '') {
 }
 
 const NAV = [
-  { to: '/', label: 'Dashboard', icon: '▦' },
-  { to: '/', label: 'My Tasks', icon: '☑', match: '/' },
+  { to: '/?view=overview', label: 'Dashboard', view: 'overview', icon: '▦' },
+  { to: '/?view=board', label: 'My Tasks', view: 'board', icon: '☑' },
   { to: '/admin', label: 'Team', icon: '👥', adminOnly: true },
 ];
 
@@ -20,10 +20,12 @@ export default function Sidebar() {
   const { user, logout } = useAuth();
   const { canViewAdmin } = useRole();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const currentView = searchParams.get('view') || 'overview';
 
   const isActive = (item) => {
-    if (item.to === '/admin') return location.pathname.startsWith('/admin');
-    return location.pathname === '/' && item.label === 'Dashboard';
+    if (item.to.startsWith('/admin')) return location.pathname.startsWith('/admin');
+    return location.pathname === '/' && item.view === currentView;
   };
 
   return (
@@ -32,16 +34,17 @@ export default function Sidebar() {
         <span className="sidebar__logo" aria-hidden="true">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
             <path
-              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+              d="M13 10V3L4 14h7v7l9-11h-7z"
               stroke="currentColor"
               strokeWidth="2"
               strokeLinecap="round"
+              strokeLinejoin="round"
             />
           </svg>
         </span>
         <div>
           <strong>Taskora</strong>
-          <span>Workspace</span>
+          <span>Pro Workspace</span>
         </div>
       </div>
 
@@ -59,6 +62,12 @@ export default function Sidebar() {
           </Link>
         ))}
       </nav>
+
+      <div className="sidebar__mid">
+        <Link to="/?view=board&create=1" className="sidebar__cta">
+          + New Task
+        </Link>
+      </div>
 
       <div className="sidebar__footer">
         <div className="sidebar__profile">
