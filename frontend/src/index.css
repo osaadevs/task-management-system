@@ -2010,6 +2010,131 @@ textarea:focus,
   opacity: 0.9;
 }
 
+/* ─── Projects ─── */
+
+.projects-page,
+.project-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.breadcrumb a {
+  color: var(--primary);
+  font-weight: 500;
+}
+
+.breadcrumb a:hover {
+  text-decoration: underline;
+}
+
+.projects-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.projects-grid--compact {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.project-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 180px;
+  padding: 18px;
+  border-radius: var(--radius-lg);
+  color: #fff;
+  text-decoration: none;
+  box-shadow: var(--shadow-md);
+  transition: var(--transition);
+}
+
+.project-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow);
+}
+
+.project-card h3 {
+  font-family: var(--font-headline);
+  font-size: 1.05rem;
+}
+
+.project-card p {
+  flex: 1;
+  font-size: 0.84rem;
+  opacity: 0.92;
+  line-height: 1.45;
+}
+
+.project-card__top,
+.project-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.75rem;
+}
+
+.project-card__status {
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
+  font-weight: 600;
+}
+
+.project-card__progress {
+  height: 4px;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.project-card__bar {
+  height: 100%;
+  background: #fff;
+  border-radius: inherit;
+}
+
+.project-card-skeleton {
+  min-height: 180px;
+  border-radius: var(--radius-lg);
+}
+
+.stats-row--compact {
+  margin-bottom: 16px;
+}
+
+.link-muted {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.link-muted:hover {
+  color: var(--primary);
+}
+
+.empty-state--inline {
+  padding: 28px 20px;
+  text-align: center;
+}
+
+.empty-state--inline .btn {
+  margin-top: 14px;
+  display: inline-flex;
+}
+
 .table-assignee__avatar {
   width: 28px;
   height: 28px;
@@ -2695,6 +2820,11 @@ tr:last-child td {
   }
 
   .recent-work__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .projects-grid,
+  .projects-grid--compact {
     grid-template-columns: 1fr;
   }
 

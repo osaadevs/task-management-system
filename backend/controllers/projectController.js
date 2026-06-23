@@ -41,7 +41,36 @@ const ProjectController = {
         res.status(200).json({ success: true, data: project });
       });
     });
-  }
+  },
+
+  createProject: (req, res) => {
+    const { project_name, description } = req.body;
+
+    if (!project_name || !String(project_name).trim()) {
+      return errorResponse(res, 400, 'VALIDATION_ERROR', 'Project name is required');
+    }
+
+    const projectData = {
+      project_name: String(project_name).trim(),
+      description: description ? String(description).trim() : null,
+      created_by: req.user.id,
+    };
+
+    ProjectModel.createProject(projectData, (err, result) => {
+      if (err) {
+        return errorResponse(res, 500, 'PROJECT_CREATE_ERROR', 'Failed to create project', err.message);
+      }
+
+      const projectId = result.insertId;
+      ProjectModel.addProjectMember(projectId, req.user.id, () => {
+        res.status(201).json({
+          success: true,
+          message: 'Project created successfully',
+          data: { id: projectId, ...projectData },
+        });
+      });
+    });
+  },
 
 };
 

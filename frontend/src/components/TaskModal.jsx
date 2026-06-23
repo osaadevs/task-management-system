@@ -16,7 +16,14 @@ const emptyForm = {
   assignee_ids: [],
 };
 
-export default function TaskModal({ task, onClose, onSaved, onDeleted }) {
+export default function TaskModal({
+  task,
+  onClose,
+  onSaved,
+  onDeleted,
+  defaultProjectId = null,
+  lockProject = false,
+}) {
   const { canManageTasks, isCollaborator } = useRole();
   const isNew = !task;
 
@@ -41,9 +48,12 @@ export default function TaskModal({ task, onClose, onSaved, onDeleted }) {
         assignee_ids: assigneeIds,
       });
     } else {
-      setForm(emptyForm);
+      setForm({
+        ...emptyForm,
+        project_id: defaultProjectId || '',
+      });
     }
-  }, [task]);
+  }, [task, defaultProjectId]);
 
   useEffect(() => {
     Promise.all([api.getProjects(), api.getTeamMembers()])
@@ -52,12 +62,15 @@ export default function TaskModal({ task, onClose, onSaved, onDeleted }) {
         const userData = userRes.data || userRes || [];
         setProjects(Array.isArray(projectData) ? projectData : []);
         setUsers(Array.isArray(userData) ? userData : []);
-        if (isNew && projectData[0]) {
-          setForm((prev) => ({ ...prev, project_id: projectData[0].id }));
+        if (isNew) {
+          setForm((prev) => ({
+            ...prev,
+            project_id: defaultProjectId || prev.project_id || projectData[0]?.id || '',
+          }));
         }
       })
       .catch(() => {});
-  }, [isNew]);
+  }, [isNew, defaultProjectId]);
 
   useEffect(() => {
     const onKeyDown = (event) => {
@@ -211,7 +224,7 @@ export default function TaskModal({ task, onClose, onSaved, onDeleted }) {
               />
             </label>
 
-            {(isNew || canManageTasks) && (
+            {(isNew || canManageTasks) && !lockProject && (
               <label>
                 Project
                 <select
@@ -227,6 +240,19 @@ export default function TaskModal({ task, onClose, onSaved, onDeleted }) {
                     </option>
                   ))}
                 </select>
+              </label>
+            )}
+
+            {lockProject && (
+              <label>
+                Project
+                <input
+                  value={
+                    projects.find((p) => Number(p.id) === Number(form.project_id))?.project_name ||
+                    'Current project'
+                  }
+                  disabled
+                />
               </label>
             )}
           </div>

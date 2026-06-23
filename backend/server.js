@@ -31,7 +31,12 @@ initSocket(server, allowedOrigins);
 
 app.use(
   cors({
-    origin: allowedOrigins.length ? allowedOrigins : true,
+    origin(origin, callback) {
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      if (/^http:\/\/localhost:\d+$/.test(origin)) return callback(null, true);
+      return callback(new Error(`CORS blocked for origin: ${origin}`));
+    },
     credentials: true,
   })
 );
