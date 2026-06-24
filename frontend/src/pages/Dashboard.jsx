@@ -3,14 +3,13 @@ import { Navigate } from 'react-router-dom';
 import { api } from '../api';
 import { useAuth } from '../context/AuthContext';
 import StatCard from '../components/StatCard';
-import CompletionGauge from '../components/CompletionGauge';
 import ProductivityChart from '../components/ProductivityChart';
 import ProjectHealthCard from '../components/ProjectHealthCard';
 import UpcomingTasks from '../components/UpcomingTasks';
 import TeamWorkload from '../components/TeamWorkload';
 import RecentProjects from '../components/RecentProjects';
 import TaskModal from '../components/TaskModal';
-import { FolderIcon, TargetIcon, CheckIcon } from '../components/Icons';
+import { FolderIcon, TargetIcon, CheckIcon, ClipboardIcon } from '../components/Icons';
 
 export default function Dashboard() {
   const { mustResetPassword, user } = useAuth();
@@ -53,10 +52,6 @@ export default function Dashboard() {
     done: tasks.filter((t) => t.status === 'Completed').length,
   }), [tasks]);
 
-  const completionRate = stats.total
-    ? Math.round((stats.done / stats.total) * 100)
-    : 0;
-
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good morning';
@@ -90,8 +85,8 @@ export default function Dashboard() {
           <div className="stats-row">
             <StatCard label="Projects" value={projects.length} accent="indigo" icon={<FolderIcon size={22} />} />
             <StatCard label="Tasks Completed" value={stats.done} accent="green" icon={<CheckIcon size={22} />} />
-            <StatCard label="Active Work" value={stats.inProgress} accent="blue" icon={<TargetIcon size={22} />} />
-            <CompletionGauge percent={completionRate} />
+            <StatCard label="Active Tasks" value={stats.inProgress} accent="blue" icon={<TargetIcon size={22} />} />
+            <StatCard label="Total Tasks" value={stats.total} accent="slate" icon={<ClipboardIcon size={22} />} />
           </div>
 
           <RecentProjects projects={projects} />
