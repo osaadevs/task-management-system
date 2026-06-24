@@ -49,4 +49,12 @@ jobs:
         run: supabase link --project-ref "$SUPABASE_PROJECT_ID" --password "$SUPABASE_DB_PASSWORD" --yes
 
       - name: Apply pending migrations
-        run: supabase db push --include-all
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          # Use direct DB host (not pooler) — migrations need a direct Postgres connection.
+          # Password is URL-encoded so special characters do not break the connection string.
+          ENCODED_PASSWORD=$(python3 -c "import urllib.parse, os; print(urllib.parse.quote(os.environ['SUPABASE_DB_PASSWORD'], safe=''))")
+          DB_URL="postgresql://postgres:${ENCODED_PASSWORD}@db.${SUPABASE_PROJECT_ID}.supabase.co:5432/postgres"
+          echo "Connecting to db.${SUPABASE_PROJECT_ID}.supabase.co (direct)"
+          supabase db push --db-url "$DB_URL" --include-all
