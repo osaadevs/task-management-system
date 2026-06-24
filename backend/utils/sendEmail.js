@@ -1,3 +1,5 @@
+const fs = require('fs');
+const path = require('path');
 const { Resend } = require('resend');
 
 function escapeHtml(value) {
@@ -31,19 +33,43 @@ function getEmailLogoUrl() {
   return `${getFrontendUrl()}/taskora-email-logo.png`;
 }
 
+function getEmailLogoSrc() {
+  try {
+    const logoPath = path.join(__dirname, '../assets/taskora-email-logo.png');
+    const buffer = fs.readFileSync(logoPath);
+    return `data:image/png;base64,${buffer.toString('base64')}`;
+  } catch {
+    return getEmailLogoUrl();
+  }
+}
+
 function isEmailConfigured() {
-  return Boolean(
-    process.env.RESEND_API_KEY?.trim() &&
-    process.env.EMAIL_FROM?.trim()
-  );
+  return Boolean(process.env.RESEND_API_KEY?.trim());
 }
 
 function getFromAddress() {
-  return process.env.EMAIL_FROM.trim();
+  const configured = process.env.EMAIL_FROM?.trim();
+  if (configured) return configured;
+
+  const sandboxFrom = process.env.RESEND_SANDBOX_FROM?.trim();
+  if (sandboxFrom) return sandboxFrom;
+
+  return 'Taskora <onboarding@resend.dev>';
+}
+
+function getEmailStatus() {
+  const from = getFromAddress();
+  return {
+    configured: isEmailConfigured(),
+    fromAddress: from,
+    usingSandboxFrom: from.includes('@resend.dev'),
+    frontendUrl: getFrontendUrl(),
+    logoSource: getEmailLogoSrc().startsWith('data:') ? 'embedded' : 'url',
+  };
 }
 
 function renderEmailLayout({ greeting, paragraphs, credentials, ctaLabel, ctaUrl, footnotes = [] }) {
-  const logoUrl = escapeHtml(getEmailLogoUrl());
+  const logoUrl = escapeHtml(getEmailLogoSrc());
   const safeGreeting = escapeHtml(greeting);
   const bodyHtml = paragraphs
     .map(
@@ -145,6 +171,7 @@ async function sendWelcomeEmail(toEmail, fullName, temporaryPassword) {
   const { data, error } = await client.emails.send({
     from: getFromAddress(),
     to: [toEmail.trim()],
+    replyTo: process.env.EMAIL_REPLY_TO?.trim() || undefined,
     subject: 'Welcome to Taskora — your account details',
     html,
     text: [
@@ -203,6 +230,7 @@ async function sendForgotPasswordEmail(toEmail, fullName, temporaryPassword) {
   const { data, error } = await client.emails.send({
     from: getFromAddress(),
     to: [toEmail.trim()],
+    replyTo: process.env.EMAIL_REPLY_TO?.trim() || undefined,
     subject: 'Taskora — your temporary password',
     html,
     text: [
@@ -231,5 +259,6 @@ async function sendForgotPasswordEmail(toEmail, fullName, temporaryPassword) {
 
 module.exports = sendWelcomeEmail;
 module.exports.isEmailConfigured = isEmailConfigured;
+module.exports.getEmailStatus = getEmailStatus;
 module.exports.sendWelcomeEmail = sendWelcomeEmail;
 module.exports.sendForgotPasswordEmail = sendForgotPasswordEmail;

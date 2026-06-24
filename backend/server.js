@@ -17,6 +17,7 @@ const commentRoutes = require('./routes/commentRoutes');
 const projectRoutes = require('./routes/projectRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const attachmentRoutes = require('./routes/attachmentRoutes');
+const { getEmailStatus } = require('./utils/sendEmail');
 
 const allowedOrigins = (process.env.CLIENT_ORIGIN || 'http://localhost:5173')
   .split(',')
@@ -94,6 +95,19 @@ app.get('/api/health', async (req, res) => {
       });
     }
   }
+});
+
+app.get('/api/health/email', (req, res) => {
+  const email = getEmailStatus();
+  res.json({
+    status: email.configured ? 'ok' : 'missing',
+    email,
+    hint: email.configured
+      ? email.usingSandboxFrom
+        ? 'Using Resend sandbox sender. Only verified recipient emails will receive mail until vendra.best is verified in Resend.'
+        : 'Email is configured.'
+      : 'Set RESEND_API_KEY on Render. Optionally set EMAIL_FROM to Taskora <noreply@vendra.best>.',
+  });
 });
 
 app.use((req, res) => {

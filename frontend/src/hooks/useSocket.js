@@ -1,23 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
-import { API_BASE } from '../api';
+import { getSocketUrl } from '../config/apiConfig';
 
 function resolveSocketUrl() {
-  const explicit = import.meta.env.VITE_SOCKET_URL;
-  if (explicit) {
-    return explicit.replace(/\/$/, '');
-  }
-
-  const apiBase = import.meta.env.VITE_API_BASE || API_BASE || '';
-  if (apiBase.startsWith('http')) {
-    return apiBase.replace(/\/api\/?$/, '');
-  }
-
-  if (typeof window !== 'undefined' && (apiBase === '/api' || apiBase.startsWith('/'))) {
-    return window.location.origin;
-  }
-
-  return 'http://localhost:5000';
+  return getSocketUrl();
 }
 
 export function useSocket(enabled = true, token = null) {

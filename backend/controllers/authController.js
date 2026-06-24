@@ -10,7 +10,8 @@ const FORGOT_PASSWORD_SUCCESS_MESSAGE =
 
 exports.login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const email = String(req.body.email || '').trim().toLowerCase();
+    const password = req.body.password;
 
     if (!email || !password) {
       return res.status(400).json({
@@ -22,7 +23,7 @@ exports.login = async (req, res) => {
     const query = `SELECT u.*, r.role_name
                    FROM users u
                    JOIN roles r ON u.role_id = r.id
-                   WHERE u.email = ?`;
+                   WHERE LOWER(u.email) = ?`;
     const [results] = await db.promise().query(query, [email]);
 
     if (results.length === 0) {
@@ -90,7 +91,7 @@ exports.forgotPassword = async (req, res) => {
     if (!isEmailConfigured()) {
       return res.status(503).json({
         errorCode: 'EMAIL_NOT_CONFIGURED',
-        message: 'Password reset email is not available right now. Please contact your administrator.',
+        message: 'Password reset email is not available. Set RESEND_API_KEY on the server (Render dashboard), then redeploy.',
       });
     }
 
@@ -111,12 +112,6 @@ exports.forgotPassword = async (req, res) => {
 
     const user = rows[0];
     const temporaryPassword = generateTempPassword();
-    const hashed = await bcrypt.hash(temporaryPassword, 10);
-
-    await db.promise().query(
-      'UPDATE users SET password_hash = ?, is_first_login = TRUE, is_active = TRUE WHERE id = ?',
-      [hashed, user.id]
-    );
 
     try {
       await sendForgotPasswordEmail(user.email, user.full_name, temporaryPassword);
@@ -127,6 +122,12 @@ exports.forgotPassword = async (req, res) => {
         message: emailErr.message || 'Could not send the reset email. Please try again later or contact your administrator.',
       });
     }
+
+    const hashed = await bcrypt.hash(temporaryPassword, 10);
+    await db.promise().query(
+      'UPDATE users SET password_hash = ?, is_first_login = TRUE, is_active = TRUE WHERE id = ?',
+      [hashed, user.id]
+    );
 
     res.json({
       success: true,
