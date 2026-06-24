@@ -61,6 +61,11 @@ export default function TaskCard({
     >
       <div className={`task-card__accent task-card--${task.priority?.toLowerCase()}`} />
       <div className="task-card__top">
+        {task.project_name && (
+          <span className="task-card__project" title={task.project_name}>
+            {task.project_name}
+          </span>
+        )}
         <span className={`priority-badge ${PRIORITY_CLASS[task.priority] || ''}`}>
           {PRIORITY_LABEL[task.priority] || task.priority}
         </span>

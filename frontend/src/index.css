@@ -1691,6 +1691,29 @@ textarea:focus,
   gap: 8px;
 }
 
+/* Project label on task cards (shown in the cross-project Tasks view) */
+.task-card__top .priority-badge {
+  margin-left: auto;
+}
+
+.task-card__project {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--surface-soft);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  max-width: 62%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.data-table__project {
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
 .task-card__footer {
   display: flex;
   align-items: center;

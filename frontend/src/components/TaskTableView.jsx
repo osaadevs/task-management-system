@@ -12,13 +12,14 @@ const STATUS_CLASS = {
   Completed: 'status-done',
 };
 
-export default function TaskTableView({ tasks, onOpenTask, onStatusChange, canManageTasks }) {
+export default function TaskTableView({ tasks, onOpenTask, onStatusChange, canManageTasks, showProject = false }) {
   return (
     <div className="table-wrap task-table panel panel--flush">
       <table className="data-table">
         <thead>
           <tr>
             <th>Task</th>
+            {showProject && <th>Project</th>}
             <th>Assignees</th>
             <th>Priority</th>
             <th>Status</th>
@@ -28,7 +29,7 @@ export default function TaskTableView({ tasks, onOpenTask, onStatusChange, canMa
         <tbody>
           {tasks.length === 0 ? (
             <tr>
-              <td colSpan={5} className="data-table__empty muted">
+              <td colSpan={showProject ? 6 : 5} className="data-table__empty muted">
                 No tasks match your filters
               </td>
             </tr>
@@ -47,6 +48,9 @@ export default function TaskTableView({ tasks, onOpenTask, onStatusChange, canMa
                       <p className="muted table-desc">{task.description}</p>
                     )}
                   </td>
+                  {showProject && (
+                    <td className="data-table__project">{task.project_name || '—'}</td>
+                  )}
                   <td>
                     <AvatarStack assignees={assignees} />
                   </td>

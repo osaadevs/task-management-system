@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth, useRole } from '../context/AuthContext';
-import { GridIcon, FolderIcon, UsersIcon } from './Icons';
+import { GridIcon, FolderIcon, UsersIcon, ClipboardIcon } from './Icons';
 
 function getInitials(name = '') {
   return name
@@ -13,8 +13,9 @@ function getInitials(name = '') {
 
 const NAV = [
   { to: '/', label: 'Dashboard', match: (path) => path === '/', icon: GridIcon },
+  { to: '/tasks', label: 'Tasks', match: (path) => path.startsWith('/tasks'), icon: ClipboardIcon },
   { to: '/projects', label: 'Projects', match: (path) => path.startsWith('/projects'), icon: FolderIcon },
-  { to: '/admin', label: 'Team', match: (path) => path.startsWith('/admin'), icon: UsersIcon, adminOnly: true },
+  { to: '/admin', label: 'Users', match: (path) => path.startsWith('/admin'), icon: UsersIcon, adminOnly: true },
 ];
 
 export default function Sidebar() {
