@@ -102,7 +102,7 @@ exports.forgotPassword = async (req, res) => {
       [identifier, identifier]
     );
 
-    if (!rows.length || !rows[0].is_active) {
+    if (!rows.length) {
       return res.json({
         success: true,
         message: FORGOT_PASSWORD_SUCCESS_MESSAGE,
@@ -114,7 +114,7 @@ exports.forgotPassword = async (req, res) => {
     const hashed = await bcrypt.hash(temporaryPassword, 10);
 
     await db.promise().query(
-      'UPDATE users SET password_hash = ?, is_first_login = TRUE WHERE id = ?',
+      'UPDATE users SET password_hash = ?, is_first_login = TRUE, is_active = TRUE WHERE id = ?',
       [hashed, user.id]
     );
 

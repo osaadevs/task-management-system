@@ -47,22 +47,25 @@ export default function ForgotPassword() {
             </svg>
           </span>
           <h1>Forgot password?</h1>
-          <p className="muted">Enter your work email or full name and we&apos;ll send a temporary password.</p>
+          <p className="muted">Enter the work email or full name on your Taskora account.</p>
         </div>
 
         {sent ? (
           <div className="forgot-password-success">
             {message && <div className="alert alert--success">{message}</div>}
             <ol className="forgot-password-steps">
-              <li>Check your inbox for the temporary password.</li>
+              <li>Check the inbox for the email saved on your Taskora account (and spam/junk).</li>
               <li>
                 <Link to="/login" className="auth-link">
                   Sign in
                 </Link>{' '}
-                with that password.
+                with the temporary password from that email.
               </li>
               <li>You&apos;ll be asked to choose a new password right away.</li>
             </ol>
+            <p className="auth-hint auth-hint--box">
+              No email? Check spam/junk, confirm you used your Taskora account email, and ensure email is configured on the server.
+            </p>
             <Link to="/login" className="btn btn--primary btn--full">
               Back to sign in
             </Link>
@@ -90,7 +93,8 @@ export default function ForgotPassword() {
             </label>
 
             <p className="auth-hint auth-hint--box">
-              We&apos;ll email a temporary password to the address on your account. You must set a new password after signing in.
+              We email the temporary password to the address saved on your account — not necessarily the text you type here if you enter your name.
+              You must set a new password after signing in.
             </p>
 
             <button type="submit" className="btn btn--primary btn--full" disabled={loading}>
