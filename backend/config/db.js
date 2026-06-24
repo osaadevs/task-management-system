@@ -8,45 +8,89 @@ dotenv.config();
 
 let pool = null;
 let activeConfigLabel = null;
+let connecting = null;
 
-async function connectWithFallback() {
-  const candidates = getConnectionCandidates();
+const STALE_CONNECTION =
+  /connection is in closed state|Connection terminated|ECONNRESET|ENOTFOUND|ETIMEDOUT|connection timeout/i;
 
-  for (const candidate of candidates) {
-    const label = candidate.label || `${candidate.host}:${candidate.port}`;
-    const config = {
-      host: candidate.host,
-      port: candidate.port,
-      user: candidate.user,
-      password: candidate.password,
-      database: candidate.database,
-      ssl: candidate.ssl ?? { rejectUnauthorized: false },
-    };
-    const testPool = new Pool(config);
-
-    try {
-      await testPool.query('SELECT 1 AS ok');
-      if (pool) {
-        await pool.end().catch(() => {});
-      }
-      pool = testPool;
-      activeConfigLabel = label;
-      console.log(`PostgreSQL connected via ${label}`);
-      return pool;
-    } catch (error) {
-      console.error(`Database attempt failed (${label}): ${error.message}`);
-      await testPool.end().catch(() => {});
+function attachPoolErrorHandler(activePool) {
+  activePool.on('error', (err) => {
+    console.error('PostgreSQL pool error:', err.message);
+    if (pool === activePool) {
+      pool = null;
+      activeConfigLabel = null;
     }
-  }
-
-  throw new Error('All database connection attempts failed');
+  });
 }
 
-function getPool() {
+async function connectWithFallback() {
+  if (connecting) return connecting;
+
+  connecting = (async () => {
+    const candidates = getConnectionCandidates();
+
+    for (const candidate of candidates) {
+      const label = candidate.label || `${candidate.host}:${candidate.port}`;
+      const config = {
+        host: candidate.host,
+        port: candidate.port,
+        user: candidate.user,
+        password: candidate.password,
+        database: candidate.database,
+        ssl: candidate.ssl ?? { rejectUnauthorized: false },
+        max: 10,
+        idleTimeoutMillis: 30_000,
+        connectionTimeoutMillis: 10_000,
+        keepAlive: true,
+      };
+      const testPool = new Pool(config);
+
+      try {
+        await testPool.query('SELECT 1 AS ok');
+        if (pool) {
+          await pool.end().catch(() => {});
+        }
+        pool = testPool;
+        activeConfigLabel = label;
+        attachPoolErrorHandler(testPool);
+        console.log(`PostgreSQL connected via ${label}`);
+        return pool;
+      } catch (error) {
+        console.error(`Database attempt failed (${label}): ${error.message}`);
+        await testPool.end().catch(() => {});
+      }
+    }
+
+    throw new Error('All database connection attempts failed');
+  })();
+
+  try {
+    return await connecting;
+  } finally {
+    connecting = null;
+  }
+}
+
+async function getPool() {
   if (!pool) {
-    throw new Error('Database pool is not initialized');
+    await connectWithFallback();
   }
   return pool;
+}
+
+async function runQuery(pgSql, params) {
+  try {
+    const activePool = await getPool();
+    return await activePool.query(pgSql, params);
+  } catch (err) {
+    if (STALE_CONNECTION.test(err.message)) {
+      pool = null;
+      activeConfigLabel = null;
+      const activePool = await connectWithFallback();
+      return activePool.query(pgSql, params);
+    }
+    throw err;
+  }
 }
 
 function toPgSql(sql) {
@@ -75,8 +119,7 @@ function query(sql, params, callback) {
 
   const pgSql = toPgSql(sql);
 
-  getPool()
-    .query(pgSql, params)
+  runQuery(pgSql, params)
     .then((result) => {
       if (isSelectQuery(sql)) {
         callback(null, result.rows);
@@ -91,9 +134,7 @@ const db = {
   query,
   promise: () => ({
     query: (sql, params = []) =>
-      getPool()
-        .query(toPgSql(sql), params)
-        .then((result) => [result.rows, result.fields]),
+      runQuery(toPgSql(sql), params).then((result) => [result.rows, result.fields]),
   }),
   connectWithFallback,
   getActiveConfigLabel: () => activeConfigLabel,

@@ -55,7 +55,7 @@ app.get('/', (req, res) => {
   res.json({ message: 'Taskora API is running!' });
 });
 
-app.get('/api/health', (req, res) => {
+app.get('/api/health', async (req, res) => {
   if (!hasDatabaseConfig()) {
     return res.status(503).json({
       status: 'error',
@@ -64,16 +64,7 @@ app.get('/api/health', (req, res) => {
     });
   }
 
-  db.query('SELECT 1 AS ok', (err) => {
-    if (err) {
-      return res.status(503).json({
-        status: 'error',
-        database: 'disconnected',
-        message: 'Database connection failed',
-        detail: err.message,
-      });
-    }
-
+  const respondHealthy = () =>
     res.json({
       status: 'ok',
       database: 'connected',
@@ -81,7 +72,29 @@ app.get('/api/health', (req, res) => {
       connection: db.getActiveConfigLabel(),
       message: 'API and database are healthy',
     });
-  });
+
+  const pingDatabase = () =>
+    new Promise((resolve, reject) => {
+      db.query('SELECT 1 AS ok', (err) => (err ? reject(err) : resolve()));
+    });
+
+  try {
+    await pingDatabase();
+    return respondHealthy();
+  } catch (firstErr) {
+    try {
+      await db.connectWithFallback();
+      await pingDatabase();
+      return respondHealthy();
+    } catch (secondErr) {
+      return res.status(503).json({
+        status: 'error',
+        database: 'disconnected',
+        message: 'Database connection failed',
+        detail: secondErr.message,
+      });
+    }
+  }
 });
 
 app.use((req, res) => {
@@ -134,6 +147,27 @@ async function checkUpcomingDeadlines() {
   }
 }
 
+async function connectDatabaseWithRetry(attempts = 5) {
+  let lastError;
+
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      await db.connectWithFallback();
+      return;
+    } catch (error) {
+      lastError = error;
+      console.error(
+        `Database connection attempt ${attempt}/${attempts} failed: ${error.message}`
+      );
+      if (attempt < attempts) {
+        await new Promise((resolve) => setTimeout(resolve, 2000 * attempt));
+      }
+    }
+  }
+
+  throw lastError;
+}
+
 async function startServer() {
   if (!process.env.JWT_SECRET) {
     console.warn('Warning: JWT_SECRET is not set');
@@ -141,7 +175,7 @@ async function startServer() {
 
   try {
     if (hasDatabaseConfig()) {
-      await db.connectWithFallback();
+      await connectDatabaseWithRetry();
       setInterval(checkUpcomingDeadlines, 60 * 60 * 1000);
       checkUpcomingDeadlines();
     }
