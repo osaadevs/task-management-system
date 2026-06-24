@@ -3,6 +3,7 @@ import { api } from '../api';
 import { useRole } from '../context/AuthContext';
 import CommentSection from './CommentSection';
 import AssigneePicker from './AssigneePicker';
+import TaskAttachments from './TaskAttachments';
 
 const STATUSES = ['To Do', 'In Progress', 'Completed'];
 const PRIORITIES = ['Low', 'Medium', 'High'];
@@ -33,6 +34,7 @@ export default function TaskModal({
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [pendingFiles, setPendingFiles] = useState([]);
 
   useEffect(() => {
     if (task) {
@@ -55,6 +57,12 @@ export default function TaskModal({
       });
     }
   }, [task, defaultProjectId]);
+
+  useEffect(() => {
+    if (isNew) {
+      setPendingFiles([]);
+    }
+  }, [isNew, task]);
 
   useEffect(() => {
     Promise.all([api.getProjects(), api.getTeamMembers()])
@@ -119,7 +127,14 @@ export default function TaskModal({
       };
 
       if (isNew) {
-        await api.createTask(payload);
+        const result = await api.createTask(payload);
+        const taskId = result.taskId;
+
+        if (taskId && pendingFiles.length) {
+          for (const file of pendingFiles) {
+            await api.uploadAttachment(taskId, file);
+          }
+        }
       } else if (isCollaborator) {
         await api.updateTask(task.id, { status: form.status });
       } else {
@@ -277,6 +292,12 @@ export default function TaskModal({
               onToggle={toggleAssignee}
             />
           )}
+
+          <TaskAttachments
+            taskId={isNew ? null : task.id}
+            pendingFiles={pendingFiles}
+            onPendingFilesChange={setPendingFiles}
+          />
 
           <div className="modal__actions">
             {canManageTasks && !isNew && (

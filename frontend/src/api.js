@@ -202,6 +202,69 @@ export const api = {
       headers: buildHeaders(),
     }).then(handleResponse);
   },
+
+  getAttachments(taskId) {
+    return fetch(`${API_BASE}/attachments/${taskId}`, {
+      headers: buildHeaders(),
+    }).then(handleResponse);
+  },
+
+  uploadAttachment(taskId, file) {
+    const auth = getStoredAuth();
+    const formData = new FormData();
+    formData.append('task_id', String(taskId));
+    formData.append('file', file);
+
+    const headers = {};
+    if (auth?.token) {
+      headers.Authorization = `Bearer ${auth.token}`;
+    }
+
+    return fetch(`${API_BASE}/attachments/upload`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    }).then(handleResponse);
+  },
+
+  async downloadAttachment(id, fileName) {
+    const auth = getStoredAuth();
+    const headers = {};
+    if (auth?.token) {
+      headers.Authorization = `Bearer ${auth.token}`;
+    }
+
+    const response = await fetch(`${API_BASE}/attachments/download/${id}`, { headers });
+
+    if (response.status === 401) {
+      localStorage.removeItem('tms_auth');
+      if (!window.location.pathname.includes('/login')) {
+        window.location.href = '/login';
+      }
+    }
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.message || data.error || 'Download failed');
+    }
+
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName || 'download';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  },
+
+  deleteAttachment(id) {
+    return fetch(`${API_BASE}/attachments/${id}`, {
+      method: 'DELETE',
+      headers: buildHeaders(),
+    }).then(handleResponse);
+  },
 };
 
 export { getStoredAuth, API_BASE };
