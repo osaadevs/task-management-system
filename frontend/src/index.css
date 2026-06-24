@@ -379,7 +379,7 @@ h3,
   text-align: center;
   padding: 11px 14px;
   border-radius: var(--radius-sm);
-  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  background: var(--brand);
   color: #fff;
   font-size: 0.88rem;
   font-weight: 600;
@@ -388,6 +388,7 @@ h3,
 }
 
 .sidebar__cta:hover {
+  background: var(--brand-h);
   transform: translateY(-1px);
   box-shadow: var(--shadow-md);
 }
@@ -934,11 +935,11 @@ h3,
   display: grid;
   grid-template-columns: 1.1fr 1fr;
   gap: 0;
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: var(--card);
+  border: none;
   border-radius: var(--radius-lg);
   overflow: hidden;
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-card);
 }
 
 .auth-card--centered {
@@ -1138,8 +1139,8 @@ input,
 select,
 textarea {
   width: 100%;
-  border: 1px solid var(--border);
-  background: var(--surface);
+  border: 1px solid var(--border-2);
+  background: var(--card);
   color: var(--text);
   border-radius: var(--radius-sm);
   padding: 11px 14px;
@@ -1162,8 +1163,8 @@ select:focus,
 textarea:focus,
 .input-field:focus {
   outline: none;
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px var(--brand-tint);
 }
 
 /* Global keyboard focus ring for all interactive controls (WCAG 2.4.7).
@@ -1257,14 +1258,14 @@ textarea:focus,
 
 .alert--error {
   background: var(--danger-light);
-  color: #b91c1c;
-  border: 1px solid #fecaca;
+  color: var(--high);
+  border: 1px solid var(--high-bg);
 }
 
 .alert--success {
   background: var(--success-light);
-  color: #047857;
-  border: 1px solid #a7f3d0;
+  color: var(--done);
+  border: 1px solid var(--done-bg);
 }
 
 .alert--shake {
@@ -1351,10 +1352,10 @@ textarea:focus,
   align-items: center;
   gap: 14px;
   padding: 18px 20px;
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: var(--card);
+  border: none;
   border-radius: var(--radius);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-card);
   transition: var(--transition);
 }
 
@@ -1370,14 +1371,15 @@ textarea:focus,
   display: grid;
   place-items: center;
   font-size: 1.15rem;
-  background: var(--primary-light);
+  background: var(--surface-soft);
+  color: var(--text-muted);
 }
 
-.stat-card--indigo .stat-card__icon { background: #eef2ff; }
-.stat-card--blue .stat-card__icon { background: #eff6ff; }
-.stat-card--slate .stat-card__icon { background: #f3f4f6; }
-.stat-card--amber .stat-card__icon { background: var(--warning-light); }
-.stat-card--green .stat-card__icon { background: var(--success-light); }
+.stat-card--indigo .stat-card__icon,
+.stat-card--blue .stat-card__icon,
+.stat-card--slate .stat-card__icon { background: var(--surface-soft); }
+.stat-card--amber .stat-card__icon { background: var(--med-bg); color: var(--med); }
+.stat-card--green .stat-card__icon { background: var(--done-bg); color: var(--done); }
 
 .stat-card__value {
   font-size: 1.6rem;
@@ -1433,8 +1435,8 @@ textarea:focus,
 }
 
 .view-toggle button.is-active {
-  background: var(--surface);
-  color: var(--primary);
+  background: var(--brand);
+  color: #fff;
   box-shadow: var(--shadow-sm);
   font-weight: 600;
 }
@@ -1507,22 +1509,23 @@ textarea:focus,
 }
 
 .kanban__column {
-  background: #f0f2f7;
-  border: 1px solid var(--border);
+  background: var(--surface-soft);
+  border: none;
   border-radius: var(--radius);
   min-height: 420px;
   display: flex;
   flex-direction: column;
+  box-shadow: var(--shadow-card);
   transition: var(--transition);
 }
 
-.kanban__column--todo { --col-accent: #9ca3af; }
-.kanban__column--progress { --col-accent: var(--secondary); }
-.kanban__column--done { --col-accent: var(--tertiary); }
+.kanban__column--todo { --col-accent: var(--todo); }
+.kanban__column--progress { --col-accent: var(--prog); }
+.kanban__column--done { --col-accent: var(--done); }
 
-.kanban__dot--todo { background: #9ca3af; }
-.kanban__dot--progress { background: var(--secondary); }
-.kanban__dot--done { background: var(--tertiary); }
+.kanban__dot--todo { background: var(--todo); }
+.kanban__dot--progress { background: var(--prog); }
+.kanban__dot--done { background: var(--done); }
 
 .kanban__column header {
   display: flex;
@@ -1583,9 +1586,9 @@ textarea:focus,
 
 .kanban__column--drop .kanban__empty,
 .kanban__column--drop {
-  border-color: var(--primary);
-  background: #eef0f8;
-  box-shadow: inset 0 0 0 2px rgba(99, 102, 241, 0.15);
+  border-color: var(--brand);
+  background: var(--brand-tint);
+  box-shadow: inset 0 0 0 2px var(--brand-tint);
 }
 
 .kanban__empty-icon {
@@ -1616,8 +1619,8 @@ textarea:focus,
 
 .task-card {
   position: relative;
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: var(--card);
+  border: none;
   border-radius: var(--radius-sm);
   padding: 14px 16px;
   cursor: grab;
@@ -1647,9 +1650,9 @@ textarea:focus,
   border-radius: var(--radius-sm) 0 0 var(--radius-sm);
 }
 
-.task-card--low .task-card__accent { background: var(--success); }
-.task-card--medium .task-card__accent { background: var(--warning); }
-.task-card--high .task-card__accent { background: var(--danger); }
+.task-card--low .task-card__accent { background: var(--low); }
+.task-card--medium .task-card__accent { background: var(--med); }
+.task-card--high .task-card__accent { background: var(--high); }
 
 .task-card:hover {
   transform: translateY(-2px);
@@ -1793,11 +1796,11 @@ textarea:focus,
 }
 
 .bento-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: var(--card);
+  border: none;
   border-radius: var(--radius-lg);
   padding: 18px 20px;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-card);
 }
 
 .bento-card--chart {
@@ -2274,18 +2277,18 @@ textarea:focus,
 }
 
 .priority-low {
-  background: var(--success-light);
-  color: #047857;
+  background: var(--low-bg);
+  color: var(--low);
 }
 
 .priority-medium {
-  background: var(--warning-light);
-  color: #b45309;
+  background: var(--med-bg);
+  color: var(--med);
 }
 
 .priority-high {
-  background: var(--danger-light);
-  color: #b91c1c;
+  background: var(--high-bg);
+  color: var(--high);
 }
 
 /* ─── Status badges (table) ─── */
@@ -2308,31 +2311,52 @@ textarea:focus,
 }
 
 .status-todo {
-  background: #f3f4f6;
-  color: #6b7280;
+  background: var(--surface-soft);
+  color: var(--text-muted);
 }
 
 .status-progress {
-  background: var(--warning-light);
-  color: #b45309;
+  background: var(--prog-bg);
+  color: var(--prog);
 }
 
 .status-done {
-  background: var(--success-light);
-  color: #047857;
+  background: var(--done-bg);
+  color: var(--done);
 }
+
+/* Solid status pills on the table status <select> — scoped to .table-select so
+   the shared .status-pill class (Navbar / AdminUsers) is untouched. The select's
+   onChange / disabled logic is unchanged: this is appearance only. */
+.table-select {
+  appearance: none;
+  -webkit-appearance: none;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.table-select.status-todo,
+.table-select.status-progress,
+.table-select.status-done {
+  color: #fff;
+  border-color: transparent;
+}
+
+.table-select.status-todo { background: var(--status-todo); }
+.table-select.status-progress { background: var(--status-prog); }
+.table-select.status-done { background: var(--status-done); }
 
 /* ─── Tables ─── */
 
 .panel {
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: var(--card);
+  border: none;
   border-radius: var(--radius);
   padding: 20px;
   display: flex;
   flex-direction: column;
   gap: 14px;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-card);
 }
 
 .panel--invite {
@@ -3008,8 +3032,8 @@ tr:last-child td {
   width: min(720px, 100%);
   max-height: 90vh;
   overflow: auto;
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: var(--card);
+  border: 1px solid var(--border-2);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
   animation: modalIn 0.25s var(--ease);
