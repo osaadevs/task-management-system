@@ -68,7 +68,7 @@ export default function Sidebar() {
           <span className="sidebar__avatar">{getInitials(user?.name)}</span>
           <div>
             <strong>{user?.name}</strong>
-            <span>{user?.role}</span>
+            <span className="sidebar__role">{user?.role}</span>
           </div>
         </div>
         <button type="button" className="sidebar__logout" onClick={logout}>

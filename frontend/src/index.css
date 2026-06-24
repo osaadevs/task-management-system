@@ -412,7 +412,7 @@ h3,
   font-weight: 600;
 }
 
-.sidebar__profile span {
+.sidebar__role {
   display: block;
   font-size: 0.78rem;
   color: var(--text-muted);
@@ -424,12 +424,13 @@ h3,
   height: 36px;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--primary), #8b5cf6);
-  color: white;
+  color: #fff;
   display: grid;
   place-items: center;
   font-size: 0.72rem;
   font-weight: 700;
   flex-shrink: 0;
+  line-height: 1;
 }
 
 .sidebar__logout {
