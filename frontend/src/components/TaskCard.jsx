@@ -1,3 +1,5 @@
+import { useRef } from 'react';
+
 const PRIORITY_CLASS = {
   Low: 'priority-low',
   Medium: 'priority-medium',
@@ -39,20 +41,37 @@ export default function TaskCard({
   isDragging = false,
   onDragStart,
   onDragEnd,
-  style,
 }) {
+  const didDrag = useRef(false);
   const assigneeList = formatAssignees(task);
   const overdue = isOverdue(task.due_date, task.status);
   const completed = task.status === 'Completed';
+
+  const handleDragStart = (e) => {
+    didDrag.current = true;
+    onDragStart?.(e);
+  };
+
+  const handleDragEnd = (e) => {
+    onDragEnd?.(e);
+  };
+
+  const handleClick = (e) => {
+    if (didDrag.current) {
+      didDrag.current = false;
+      e.preventDefault();
+      return;
+    }
+    onOpen(task);
+  };
 
   return (
     <article
       className={`task-card task-card--${task.priority?.toLowerCase()} ${isDragging ? 'task-card--dragging' : ''} ${overdue ? 'task-card--overdue' : ''} ${completed ? 'task-card--done' : ''}`}
       draggable={draggable}
-      style={style}
-      onDragStart={onDragStart}
-      onDragEnd={onDragEnd}
-      onClick={() => onOpen(task)}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onClick={handleClick}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => {
