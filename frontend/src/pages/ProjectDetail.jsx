@@ -5,9 +5,8 @@ import { useAuth, useRole } from '../context/AuthContext';
 import KanbanBoard from '../components/KanbanBoard';
 import TaskTableView from '../components/TaskTableView';
 import TaskModal from '../components/TaskModal';
-import StatCard from '../components/StatCard';
-import CompletionGauge from '../components/CompletionGauge';
-import { ClipboardIcon, TargetIcon, CheckIcon } from '../components/Icons';
+import ProjectStatsBar from '../components/ProjectStatsBar';
+import { ClipboardIcon } from '../components/Icons';
 
 export default function ProjectDetail() {
   const { projectId } = useParams();
@@ -170,12 +169,7 @@ export default function ProjectDetail() {
       </header>
 
       {!loading && !error && (
-        <div className="stats-row stats-row--compact">
-          <StatCard label="Total Tasks" value={stats.total} accent="indigo" icon={<ClipboardIcon size={22} />} />
-          <StatCard label="In Progress" value={stats.inProgress} accent="blue" icon={<TargetIcon size={22} />} />
-          <StatCard label="Completed" value={stats.done} accent="green" icon={<CheckIcon size={22} />} />
-          <CompletionGauge percent={completionRate} label="Progress" />
-        </div>
+        <ProjectStatsBar stats={stats} completionRate={completionRate} />
       )}
 
       <div className="filter-bar">
@@ -244,8 +238,8 @@ export default function ProjectDetail() {
             setCreating(false);
             setSelectedTask(null);
           }}
-          onSaved={loadData}
-          onDeleted={loadData}
+          onSaved={() => loadData({ silent: true })}
+          onDeleted={() => loadData({ silent: true })}
         />
       )}
     </div>
