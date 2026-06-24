@@ -5,11 +5,11 @@ const TaskModel = {
     let sql = `
       SELECT tasks.*,
         COALESCE(
-          (SELECT json_agg(json_build_object('id', u.id, 'full_name', u.full_name, 'email', u.email))
+          (SELECT JSON_ARRAYAGG(JSON_OBJECT('id', u.id, 'full_name', u.full_name, 'email', u.email))
            FROM task_assignments ta2
            JOIN users u ON u.id = ta2.user_id
            WHERE ta2.task_id = tasks.id),
-          '[]'::json
+          JSON_ARRAY()
         ) AS assignees
       FROM tasks
       WHERE 1=1`;
@@ -61,11 +61,11 @@ const TaskModel = {
     const sql = `
       SELECT tasks.*,
         COALESCE(
-          (SELECT json_agg(json_build_object('id', u.id, 'full_name', u.full_name, 'email', u.email))
+          (SELECT JSON_ARRAYAGG(JSON_OBJECT('id', u.id, 'full_name', u.full_name, 'email', u.email))
            FROM task_assignments ta
            JOIN users u ON u.id = ta.user_id
            WHERE ta.task_id = tasks.id),
-          '[]'::json
+          JSON_ARRAY()
         ) AS assignees
       FROM tasks
       WHERE tasks.id = ?`;
@@ -75,8 +75,7 @@ const TaskModel = {
   createTask: (taskData, callback) => {
     const sql = `INSERT INTO tasks
                  (title, description, project_id, due_date, priority, status, created_by)
-                 VALUES (?, ?, ?, ?, ?, ?, ?)
-                 RETURNING id`;
+                 VALUES (?, ?, ?, ?, ?, ?, ?)`;
     const values = [
       taskData.title,
       taskData.description,
@@ -116,9 +115,7 @@ const TaskModel = {
   },
 
   assignTask: (taskId, userId, callback) => {
-    const sql = `INSERT INTO task_assignments (task_id, user_id)
-                 VALUES (?, ?)
-                 ON CONFLICT (task_id, user_id) DO NOTHING`;
+    const sql = `INSERT IGNORE INTO task_assignments (task_id, user_id) VALUES (?, ?)`;
     db.query(sql, [taskId, userId], callback);
   },
 

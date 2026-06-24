@@ -1,102 +1,44 @@
-const dns = require('dns');
-const { Pool } = require('pg');
+const mysql = require('mysql2');
 const dotenv = require('dotenv');
-const { getConnectionCandidates } = require('./dbConfig');
 
-dns.setDefaultResultOrder('ipv4first');
 dotenv.config();
 
-let pool = null;
-let activeConfigLabel = null;
+const connection = mysql.createConnection({
+  host: process.env.DB_HOST || 'localhost',
+  port: process.env.DB_PORT || 3307,
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASSWORD || '1234',
+  database: process.env.DB_NAME || 'tms_db'
+});
 
-async function connectWithFallback() {
-  const candidates = getConnectionCandidates();
-
-  for (const candidate of candidates) {
-    const label = candidate.label || `${candidate.host}:${candidate.port}`;
-    const config = {
-      host: candidate.host,
-      port: candidate.port,
-      user: candidate.user,
-      password: candidate.password,
-      database: candidate.database,
-      ssl: candidate.ssl ?? { rejectUnauthorized: false },
-    };
-    const testPool = new Pool(config);
-
-    try {
-      await testPool.query('SELECT 1 AS ok');
-      if (pool) {
-        await pool.end().catch(() => {});
-      }
-      pool = testPool;
-      activeConfigLabel = label;
-      console.log(`PostgreSQL connected via ${label}`);
-      return pool;
-    } catch (error) {
-      console.error(`Database attempt failed (${label}): ${error.message}`);
-      await testPool.end().catch(() => {});
-    }
+connection.connect((err) => {
+  if (err) {
+    console.error('Database connection failed:', err.message);
+    return;
   }
-
-  throw new Error('All database connection attempts failed');
-}
-
-function getPool() {
-  if (!pool) {
-    throw new Error('Database pool is not initialized');
-  }
-  return pool;
-}
-
-function toPgSql(sql) {
-  let index = 0;
-  return sql.replace(/\?/g, () => `$${++index}`);
-}
-
-function isSelectQuery(sql) {
-  return /^\s*select\b/i.test(sql);
-}
-
-function toMutationResult(result) {
-  const row = result.rows[0];
-  return {
-    affectedRows: result.rowCount,
-    insertId: row?.id,
-    createdAt: row?.created_at,
-  };
-}
-
-function query(sql, params, callback) {
-  if (typeof params === 'function') {
-    callback = params;
-    params = [];
-  }
-
-  const pgSql = toPgSql(sql);
-
-  getPool()
-    .query(pgSql, params)
-    .then((result) => {
-      if (isSelectQuery(sql)) {
-        callback(null, result.rows);
-        return;
-      }
-      callback(null, toMutationResult(result));
-    })
-    .catch((err) => callback(err));
-}
+  console.log('MySQL Database connected successfully!');
+});
 
 const db = {
-  query,
+  query: (sql, params, callback) => {
+    if (typeof params === 'function') {
+      callback = params;
+      params = [];
+    }
+    return connection.query(sql, params, callback);
+  },
   promise: () => ({
-    query: (sql, params = []) =>
-      getPool()
-        .query(toPgSql(sql), params)
-        .then((result) => [result.rows, result.fields]),
+    query: (sql, params = []) => {
+      return new Promise((resolve, reject) => {
+        connection.query(sql, params, (err, results) => {
+          if (err) reject(err);
+          else resolve([results, []]);
+        });
+      });
+    }
   }),
-  connectWithFallback,
-  getActiveConfigLabel: () => activeConfigLabel,
+  connectWithFallback: async () => Promise.resolve(connection),
+  getActiveConfigLabel: () => 'localhost:3307',
 };
 
 module.exports = db;

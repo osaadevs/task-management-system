@@ -1,57 +1,70 @@
-const jwt = require('jsonwebtoken');
-const { Server } = require('socket.io');
+const socketService = {
+  io: null,
 
-let io = null;
-
-function initSocket(server, allowedOrigins) {
-  io = new Server(server, {
-    cors: { origin: allowedOrigins.length ? allowedOrigins : '*' },
-  });
-
-  io.use((socket, next) => {
-    const token = socket.handshake.auth?.token;
-
-    if (!token) {
-      return next(new Error('Unauthorized'));
-    }
-
-    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-      if (err) {
-        return next(new Error('Unauthorized'));
+  init(server) {
+    const { Server } = require('socket.io');
+    this.io = new Server(server, {
+      cors: {
+        origin: '*',
+        methods: ['GET', 'POST']
       }
-      socket.user = decoded;
-      next();
     });
-  });
 
-  io.on('connection', (socket) => {
-    socket.join(`user:${Number(socket.user.id)}`);
-    console.log(`Socket connected: user ${socket.user.id}`);
-    socket.on('disconnect', () => {
-      console.log(`Socket disconnected: user ${socket.user.id}`);
+    this.io.on('connection', (socket) => {
+      console.log('User connected:', socket.id);
+
+      // User joins their own room (using their user ID)
+      socket.on('join', (userId) => {
+        socket.join(`user_${userId}`);
+        console.log(`User ${userId} joined their room`);
+      });
+
+      socket.on('disconnect', () => {
+        console.log('User disconnected:', socket.id);
+      });
     });
-  });
 
-  return io;
-}
+    return this.io;
+  },
 
-function getIO() {
-  return io;
-}
+  // Notify when a task is assigned to someone
+  notifyTaskAssigned(userId, task) {
+    if (this.io) {
+      this.io.to(`user_${userId}`).emit('task_assigned', {
+        message: `You have been assigned a new task: "${task.title}"`,
+        task
+      });
+    }
+  },
 
-function emitToUser(userId, event, payload) {
-  if (!io) return;
-  io.to(`user:${Number(userId)}`).emit(event, payload);
-}
+  // Notify when a task status changes
+  notifyStatusChanged(userId, task) {
+    if (this.io) {
+      this.io.to(`user_${userId}`).emit('status_changed', {
+        message: `Task "${task.title}" status changed to ${task.status}`,
+        task
+      });
+    }
+  },
 
-function emitTaskUpdated(taskId) {
-  if (!io) return;
-  io.emit('taskUpdated', { taskId, at: new Date().toISOString() });
-}
+  // Notify when someone comments on a task
+  notifyComment(userId, taskTitle, commenterName) {
+    if (this.io) {
+      this.io.to(`user_${userId}`).emit('new_comment', {
+        message: `${commenterName} commented on "${taskTitle}"`
+      });
+    }
+  },
 
-module.exports = {
-  initSocket,
-  getIO,
-  emitToUser,
-  emitTaskUpdated,
+  // Notify when a deadline is approaching
+  notifyDeadline(userId, task) {
+    if (this.io) {
+      this.io.to(`user_${userId}`).emit('deadline_approaching', {
+        message: `Task "${task.title}" is due soon!`,
+        task
+      });
+    }
+  }
 };
+
+module.exports = socketService;
