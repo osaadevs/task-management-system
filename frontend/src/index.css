@@ -404,6 +404,16 @@ h3,
   display: flex;
   align-items: center;
   gap: 10px;
+  text-decoration: none;
+  color: inherit;
+  border-radius: var(--radius-sm);
+  transition: var(--transition);
+  padding: 4px;
+  margin: -4px;
+}
+
+.sidebar__profile:hover {
+  background: var(--surface-muted);
 }
 
 .sidebar__profile strong {
@@ -3205,6 +3215,120 @@ tr:last-child td {
 .role-badge--collab {
   background: #f3f4f6;
   color: #4b5563;
+}
+
+/* ─── Account page ─── */
+.account-page {
+  max-width: 900px;
+}
+
+.account-tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.account-tab {
+  min-width: 100px;
+  text-align: center;
+}
+
+.account-profile__header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.account-profile__avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--primary-light);
+  color: var(--primary);
+  font-size: 1.25rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.account-profile__header h2 {
+  margin: 0 0 8px;
+  font-size: 1.35rem;
+}
+
+.account-details {
+  display: grid;
+  gap: 0;
+  margin: 0;
+}
+
+.account-details__row {
+  display: grid;
+  grid-template-columns: minmax(140px, 200px) 1fr;
+  gap: 12px 20px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.account-details__row:last-child {
+  border-bottom: none;
+}
+
+.account-details__row dt {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.account-details__row dd {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.account-security__card h3 {
+  margin: 0 0 8px;
+}
+
+.account-security__hint {
+  margin: 0 0 16px;
+  font-size: 0.9rem;
+}
+
+.account-password-mask {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-muted);
+}
+
+.account-password-mask__dots {
+  letter-spacing: 0.15em;
+  font-size: 1rem;
+  color: var(--text-muted);
+}
+
+.account-password-form {
+  margin-top: 16px;
+  display: grid;
+  gap: 14px;
+}
+
+.account-password-form h4 {
+  margin: 0;
 }
 
 .status-dot {

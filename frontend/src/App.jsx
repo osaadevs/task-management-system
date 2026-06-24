@@ -9,6 +9,7 @@ import Dashboard from './pages/Dashboard';
 import Projects from './pages/Projects';
 import ProjectDetail from './pages/ProjectDetail';
 import AdminUsers from './pages/AdminUsers';
+import Account from './pages/Account';
 
 export default function App() {
   return (
@@ -25,6 +26,7 @@ export default function App() {
               <Route path="projects" element={<Projects />} />
               <Route path="projects/:projectId" element={<ProjectDetail />} />
               <Route path="admin" element={<AdminUsers />} />
+              <Route path="account" element={<Account />} />
             </Route>
           </Route>
 

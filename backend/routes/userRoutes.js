@@ -13,6 +13,8 @@ const { blockIfMustResetPassword } = require('../middleware/requirePasswordReset
  *     security:
  *       - bearerAuth: []
  */
+router.get('/me', verifyToken, blockIfMustResetPassword, userController.getMyProfile);
+router.patch('/me/password', verifyToken, blockIfMustResetPassword, userController.changeMyPassword);
 router.get('/team', verifyToken, blockIfMustResetPassword, userController.getTeamMembers);
 router.get('/', verifyToken, blockIfMustResetPassword, requireRole('Admin'), userController.getUsers);
 

@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth, useRole } from '../context/AuthContext';
-import { GridIcon, FolderIcon, UsersIcon } from './Icons';
+import { GridIcon, FolderIcon, UsersIcon, UserIcon } from './Icons';
 
 function getInitials(name = '') {
   return name
@@ -14,6 +14,7 @@ function getInitials(name = '') {
 const NAV = [
   { to: '/', label: 'Dashboard', match: (path) => path === '/', icon: GridIcon },
   { to: '/projects', label: 'Projects', match: (path) => path.startsWith('/projects'), icon: FolderIcon },
+  { to: '/account', label: 'Account', match: (path) => path.startsWith('/account'), icon: UserIcon },
   { to: '/admin', label: 'Team', match: (path) => path.startsWith('/admin'), icon: UsersIcon, adminOnly: true },
 ];
 
@@ -64,13 +65,13 @@ export default function Sidebar() {
       )}
 
       <div className="sidebar__footer">
-        <div className="sidebar__profile">
+        <Link to="/account" className="sidebar__profile">
           <span className="sidebar__avatar">{getInitials(user?.name)}</span>
           <div>
             <strong>{user?.name}</strong>
             <span className="sidebar__role">{user?.role}</span>
           </div>
-        </div>
+        </Link>
         <button type="button" className="sidebar__logout" onClick={logout}>
           Sign out
         </button>

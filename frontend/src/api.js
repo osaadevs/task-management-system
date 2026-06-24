@@ -141,6 +141,20 @@ export const api = {
     }).then(handleResponse);
   },
 
+  getProfile() {
+    return fetch(`${API_BASE}/users/me`, {
+      headers: buildHeaders(),
+    }).then(handleResponse);
+  },
+
+  changePassword(currentPassword, newPassword) {
+    return fetch(`${API_BASE}/users/me/password`, {
+      method: 'PATCH',
+      headers: buildHeaders(),
+      body: JSON.stringify({ currentPassword, newPassword }),
+    }).then(handleResponse);
+  },
+
   getUsers() {
     return fetch(`${API_BASE}/users`, {
       headers: buildHeaders(),
