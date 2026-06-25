@@ -2,10 +2,16 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('../config/db');
 const { PASSWORD_REGEX } = require('../utils/errors');
+const generateTempPassword = require('../utils/generateTempPassword');
+const { sendForgotPasswordEmail, isEmailConfigured } = require('../utils/sendEmail');
+
+const FORGOT_PASSWORD_SUCCESS_MESSAGE =
+  'If an account matches that email or name, a temporary password has been sent. Check your inbox and sign in to set a new password.';
 
 exports.login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const email = String(req.body.email || '').trim().toLowerCase();
+    const password = req.body.password;
 
     if (!email || !password) {
       return res.status(400).json({
@@ -17,7 +23,7 @@ exports.login = async (req, res) => {
     const query = `SELECT u.*, r.role_name
                    FROM users u
                    JOIN roles r ON u.role_id = r.id
-                   WHERE u.email = ?`;
+                   WHERE LOWER(u.email) = ?`;
     const [results] = await db.promise().query(query, [email]);
 
     if (results.length === 0) {
@@ -66,6 +72,72 @@ exports.login = async (req, res) => {
     res.status(500).json({
       errorCode: 'INTERNAL_ERROR',
       message: 'Login failed',
+      description: err.message,
+    });
+  }
+};
+
+exports.forgotPassword = async (req, res) => {
+  try {
+    const identifier = String(req.body.email || req.body.username || '').trim();
+
+    if (!identifier) {
+      return res.status(400).json({
+        errorCode: 'VALIDATION_ERROR',
+        message: 'Work email or name is required',
+      });
+    }
+
+    if (!isEmailConfigured()) {
+      return res.status(503).json({
+        errorCode: 'EMAIL_NOT_CONFIGURED',
+        message: 'Password reset email is not available. Set RESEND_API_KEY on the server (Render dashboard), then redeploy.',
+      });
+    }
+
+    const [rows] = await db.promise().query(
+      `SELECT u.id, u.full_name, u.email, u.is_active
+       FROM users u
+       WHERE LOWER(u.email) = LOWER(?) OR LOWER(u.full_name) = LOWER(?)
+       LIMIT 1`,
+      [identifier, identifier]
+    );
+
+    if (!rows.length) {
+      return res.json({
+        success: true,
+        message: FORGOT_PASSWORD_SUCCESS_MESSAGE,
+      });
+    }
+
+    const user = rows[0];
+    const temporaryPassword = generateTempPassword();
+
+    try {
+      await sendForgotPasswordEmail(user.email, user.full_name, temporaryPassword);
+    } catch (emailErr) {
+      console.error('Forgot password email error:', emailErr);
+      return res.status(503).json({
+        errorCode: 'EMAIL_SEND_FAILED',
+        message: emailErr.message || 'Could not send the reset email. Please try again later or contact your administrator.',
+      });
+    }
+
+    const hashed = await bcrypt.hash(temporaryPassword, 10);
+    await db.promise().query(
+      'UPDATE users SET password_hash = ?, is_first_login = TRUE, is_active = TRUE WHERE id = ?',
+      [hashed, user.id]
+    );
+
+    res.json({
+      success: true,
+      message: FORGOT_PASSWORD_SUCCESS_MESSAGE,
+    });
+  } catch (err) {
+    console.error('Forgot password error:', err);
+    res.status(500).json({
+      errorCode: 'INTERNAL_ERROR',
+      message: 'Password reset request failed',
       description: err.message,
     });
   }

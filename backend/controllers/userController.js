@@ -2,15 +2,8 @@ const bcrypt = require('bcryptjs');
 const db = require('../config/db');
 const { sendWelcomeEmail, isEmailConfigured } = require('../utils/sendEmail');
 const { createNotification } = require('../services/notificationService');
-
-function generateTempPassword() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#';
-  let password = 'Aa1';
-  for (let i = 0; i < 9; i += 1) {
-    password += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return password;
-}
+const { PASSWORD_REGEX } = require('../utils/errors');
+const generateTempPassword = require('../utils/generateTempPassword');
 
 function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -212,6 +205,91 @@ exports.activateUser = async (req, res) => {
     }
 
     res.json({ message: 'User activated successfully' });
+  } catch (err) {
+    res.status(500).json({ errorCode: 'INTERNAL_ERROR', message: err.message });
+  }
+};
+
+exports.getMyProfile = async (req, res) => {
+  try {
+    const [rows] = await db.promise().query(
+      `SELECT u.id, u.full_name, u.email, u.is_active, u.created_at, r.role_name
+       FROM users u
+       JOIN roles r ON u.role_id = r.id
+       WHERE u.id = ?`,
+      [req.user.id]
+    );
+
+    if (!rows.length) {
+      return res.status(404).json({ errorCode: 'NOT_FOUND', message: 'User not found' });
+    }
+
+    const user = rows[0];
+    res.json({
+      success: true,
+      data: {
+        id: user.id,
+        name: user.full_name,
+        email: user.email,
+        role: user.role_name,
+        is_active: user.is_active !== false && user.is_active !== 0,
+        created_at: user.created_at,
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ errorCode: 'INTERNAL_ERROR', message: err.message });
+  }
+};
+
+exports.changeMyPassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        errorCode: 'VALIDATION_ERROR',
+        message: 'Current password and new password are required',
+      });
+    }
+
+    if (!PASSWORD_REGEX.test(newPassword)) {
+      return res.status(400).json({
+        errorCode: 'VALIDATION_ERROR',
+        message: 'New password must be at least 8 characters and include upper, lower, and a number',
+      });
+    }
+
+    if (currentPassword === newPassword) {
+      return res.status(400).json({
+        errorCode: 'VALIDATION_ERROR',
+        message: 'New password must be different from your current password',
+      });
+    }
+
+    const [rows] = await db.promise().query(
+      'SELECT password_hash FROM users WHERE id = ?',
+      [req.user.id]
+    );
+
+    if (!rows.length) {
+      return res.status(404).json({ errorCode: 'NOT_FOUND', message: 'User not found' });
+    }
+
+    const matches = await bcrypt.compare(currentPassword, rows[0].password_hash);
+    if (!matches) {
+      return res.status(401).json({
+        errorCode: 'INVALID_PASSWORD',
+        message: 'Current password is incorrect',
+      });
+    }
+
+    const hashed = await bcrypt.hash(newPassword, 10);
+    await db.promise().query(
+      'UPDATE users SET password_hash = ?, is_first_login = FALSE WHERE id = ?',
+      [hashed, req.user.id]
+    );
+
+    res.json({ success: true, message: 'Password updated successfully' });
   } catch (err) {
     res.status(500).json({ errorCode: 'INTERNAL_ERROR', message: err.message });
   }

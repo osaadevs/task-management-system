@@ -127,6 +127,17 @@ export function ClipboardIcon({ size = 18 }) {
   );
 }
 
+export function ListTodoIcon({ size = 18 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="4" y="5" width="16" height="15" rx="2" stroke="currentColor" strokeWidth="1.75" />
+      <path d="M8 9.5h8M8 13h5.5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+      <circle cx="7" cy="9.5" r="1" fill="currentColor" />
+      <circle cx="7" cy="13" r="1" fill="currentColor" />
+    </svg>
+  );
+}
+
 export function TargetIcon({ size = 18 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">

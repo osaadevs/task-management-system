@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import { useAuth } from '../context/AuthContext';
@@ -21,6 +21,8 @@ export default function ProjectModal({ onClose, onSaved }) {
   const [form, setForm] = useState(emptyForm);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const nameInputRef = useRef(null);
+  const modalRef = useRef(null);
 
   const selectedTheme = THEMES.find((t) => t.id === form.theme) || THEMES[0];
 
@@ -40,10 +42,20 @@ export default function ProjectModal({ onClose, onSaved }) {
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
+    if (modalRef.current) {
+      modalRef.current.focus({ preventScroll: true });
+    }
+    window.setTimeout(() => nameInputRef.current?.focus({ preventScroll: true }), 50);
     return () => {
       document.body.style.overflow = '';
     };
   }, []);
+
+  useEffect(() => {
+    if (!error || !modalRef.current) return;
+    const alert = modalRef.current.querySelector('.alert--error');
+    alert?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, [error]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -80,11 +92,13 @@ export default function ProjectModal({ onClose, onSaved }) {
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div
+        ref={modalRef}
         className="modal modal--project"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
         aria-labelledby="project-modal-title"
+        tabIndex={-1}
       >
         <div className="project-modal__layout">
           <form className="project-modal__form" onSubmit={handleSubmit}>
@@ -113,6 +127,7 @@ export default function ProjectModal({ onClose, onSaved }) {
             <label className="field">
               <span>Project name</span>
               <input
+                ref={nameInputRef}
                 className="input-field"
                 value={form.project_name}
                 onChange={(e) => setForm((prev) => ({ ...prev, project_name: e.target.value }))}

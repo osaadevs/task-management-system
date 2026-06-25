@@ -31,6 +31,15 @@ router.post('/login', authController.login);
 
 /**
  * @swagger
+ * /api/auth/forgot-password:
+ *   post:
+ *     summary: Request a temporary password by email or name
+ *     tags: [Auth]
+ */
+router.post('/forgot-password', authController.forgotPassword);
+
+/**
+ * @swagger
  * /api/auth/reset-password:
  *   post:
  *     summary: Reset password on first login

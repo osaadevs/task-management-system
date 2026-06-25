@@ -7,7 +7,7 @@ services:
     startCommand: npm start
     envVars:
       - key: CLIENT_ORIGIN
-        value: https://task-managemnet-system.netlify.app
+        value: https://taskora.vendra.best,https://task-management-system-pi-five.vercel.app,http://localhost:5173
       - key: API_BASE_URL
         value: https://task-management-system-backend-z9y4.onrender.com
       - key: DB_SSL
@@ -15,8 +15,8 @@ services:
       - key: SUPABASE_POOLER_HOST
         value: aws-1-ap-southeast-1.pooler.supabase.com
       - key: FRONTEND_URL
-        value: https://task-managemnet-system.netlify.app
+        value: https://taskora.vendra.best
       # Set in Render dashboard (secrets):
-      # RESEND_API_KEY=re_xxxx
-      # EMAIL_FROM=Taskora <noreply@vendra.best>
+      # RESEND_API_KEY=re_xxxx  (required — set in Render dashboard)
+      # EMAIL_FROM=Taskora <noreply@vendra.best>  (optional — defaults to onboarding@resend.dev)
       # DATABASE_URL from Supabase

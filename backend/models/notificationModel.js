@@ -2,20 +2,24 @@ const db = require('../config/db');
 
 const NotificationModel = {
   create: (data, callback) => {
-    const sql = `INSERT INTO notifications (user_id, title, message, type)
-                 VALUES (?, ?, ?, ?)
-                 RETURNING id, user_id, title, message, type, is_read, created_at`;
-    db.query(sql, [data.userId, data.title, data.message, data.type], (err, result) => {
-      if (err) return callback(err);
-      callback(null, {
-        insertId: result.insertId,
-        createdAt: result.createdAt,
-      });
-    });
+    const sql = `INSERT INTO notifications (user_id, title, message, type, task_id, project_id)
+                 VALUES (?, ?, ?, ?, ?, ?)
+                 RETURNING id, user_id, title, message, type, task_id, project_id, is_read, created_at`;
+    db.query(
+      sql,
+      [data.userId, data.title, data.message, data.type, data.taskId || null, data.projectId || null],
+      (err, result) => {
+        if (err) return callback(err);
+        callback(null, {
+          insertId: result.insertId,
+          createdAt: result.createdAt,
+        });
+      }
+    );
   },
 
   getByUserId: (userId, callback) => {
-    const sql = `SELECT id, user_id, title, message, type, is_read, created_at
+    const sql = `SELECT id, user_id, title, message, type, task_id, project_id, is_read, created_at
                  FROM notifications
                  WHERE user_id = ?
                  ORDER BY created_at DESC

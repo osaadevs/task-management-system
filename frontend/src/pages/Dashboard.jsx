@@ -20,8 +20,8 @@ export default function Dashboard() {
   const [error, setError] = useState('');
   const [selectedTask, setSelectedTask] = useState(null);
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
+  const loadData = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) setLoading(true);
     setError('');
     try {
       const [tasksRes, projectsRes] = await Promise.all([
@@ -33,12 +33,18 @@ export default function Dashboard() {
     } catch (err) {
       setError(err.message);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
     loadData();
+  }, [loadData]);
+
+  useEffect(() => {
+    const onTasksChanged = () => loadData({ silent: true });
+    window.addEventListener('tms:tasks-changed', onTasksChanged);
+    return () => window.removeEventListener('tms:tasks-changed', onTasksChanged);
   }, [loadData]);
 
   useEffect(() => {

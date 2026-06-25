@@ -1,10 +1,11 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import { useAuth } from '../context/AuthContext';
 import AuthBackground from '../components/AuthBackground';
 import ThemeToggle from '../components/ThemeToggle';
 import { EyeIcon, EyeOffIcon, MailIcon, InfoIcon } from '../components/Icons';
+import { clearStoredAuth, getRememberedAuth, getValidStoredAuth, restoreRememberedAuth } from '../utils/authStorage';
 
 export default function Login() {
   const { login } = useAuth();
@@ -15,6 +16,14 @@ export default function Login() {
   const [remember, setRemember] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const rememberedAuth = getRememberedAuth();
+
+  useEffect(() => {
+    const validAuth = getValidStoredAuth();
+    if (validAuth) {
+      navigate('/', { replace: true });
+    }
+  }, [navigate]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -27,7 +36,7 @@ export default function Login() {
         token: response.token,
         user: response.user,
         mustResetPassword: response.mustResetPassword,
-      });
+      }, { remember });
 
       if (response.mustResetPassword) {
         navigate('/reset-password');
@@ -35,9 +44,24 @@ export default function Login() {
         navigate('/');
       }
     } catch (err) {
-      setError(err.message);
+      const message =
+        err.message === 'Invalid email or password'
+          ? 'Invalid email or password. If you used Forgot password recently, sign in with the temporary password from your email.'
+          : err.message;
+      setError(message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRestoreSession = () => {
+    const restored = restoreRememberedAuth();
+    if (!restored) return;
+    login(restored, { remember: true });
+    if (restored.mustResetPassword) {
+      navigate('/reset-password');
+    } else {
+      navigate('/');
     }
   };
 
@@ -64,16 +88,29 @@ export default function Login() {
         <form onSubmit={handleSubmit} className="auth-form auth-form--stacked">
           {error && <div className="alert alert--error">{error}</div>}
 
-          <label className="field">
+          {rememberedAuth && (
+            <div className="auth-hint auth-hint--box">
+              <p style={{ margin: '0 0 10px' }}>
+                Saved sign-in for <strong>{rememberedAuth.user?.email}</strong> on this device.
+              </p>
+              <button type="button" className="btn btn--ghost btn--full" onClick={handleRestoreSession}>
+                Continue as {rememberedAuth.user?.name}
+              </button>
+            </div>
+          )}
+
+          <label className="field" htmlFor="email">
             <span>Work Email</span>
             <div className="field__input-wrap">
               <input
+                id="email"
+                name="email"
                 type="email"
                 className="input-field"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="name@company.com"
-                autoComplete="email"
+                autoComplete="username"
                 required
               />
               <span className="field__icon" aria-hidden="true">
@@ -82,12 +119,17 @@ export default function Login() {
             </div>
           </label>
 
-          <label className="field">
+          <label className="field" htmlFor="password">
             <span className="field__label-row">
               <span>Password</span>
+              <Link to="/forgot-password" className="auth-link auth-link--inline">
+                Forgot password?
+              </Link>
             </span>
             <div className="field__input-wrap">
               <input
+                id="password"
+                name="password"
                 type={showPassword ? 'text' : 'password'}
                 className="input-field"
                 value={password}
@@ -113,8 +155,12 @@ export default function Login() {
               checked={remember}
               onChange={(e) => setRemember(e.target.checked)}
             />
-            Remember this device
+            Remember me on this device
           </label>
+
+          <p className="auth-hint">
+            Each browser tab can stay signed in to a different account.
+          </p>
 
           <button type="submit" className="btn btn--primary btn--full" disabled={loading}>
             {loading ? 'Signing in…' : 'Sign In →'}

@@ -5,18 +5,21 @@ const errorResponse = (res, statusCode, errorCode, message, description = null) 
 };
 
 const AttachmentController = {
-
   getAttachmentsByTask: (req, res) => {
     const { task_id } = req.params;
 
-    if (!task_id || isNaN(task_id)) {
+    if (!task_id || Number.isNaN(Number(task_id))) {
       return errorResponse(res, 400, 'INVALID_TASK_ID', 'Invalid task ID', 'Task ID must be a valid number');
     }
 
-    const sql = `SELECT attachments.*, users.full_name as uploaded_by_name 
-                 FROM attachments 
-                 JOIN users ON attachments.uploaded_by = users.id 
-                 WHERE attachments.task_id = ?`;
+    const sql = `SELECT attachments.id, attachments.task_id, attachments.uploaded_by,
+                        attachments.file_name, attachments.file_url, attachments.file_mime,
+                        attachments.file_size, attachments.uploaded_at,
+                        users.full_name AS uploaded_by_name
+                 FROM attachments
+                 JOIN users ON attachments.uploaded_by = users.id
+                 WHERE attachments.task_id = ?
+                 ORDER BY attachments.uploaded_at DESC`;
 
     db.query(sql, [task_id], (err, results) => {
       if (err) {
@@ -26,16 +29,93 @@ const AttachmentController = {
     });
   },
 
+  uploadAttachment: (req, res) => {
+    const taskId = Number(req.body.task_id);
+    const uploadedBy = req.user.id;
+    const file = req.file;
+
+    if (!taskId || Number.isNaN(taskId)) {
+      return errorResponse(res, 400, 'VALIDATION_ERROR', 'Invalid task ID', 'task_id is required');
+    }
+
+    if (!file) {
+      return errorResponse(res, 400, 'VALIDATION_ERROR', 'No file uploaded', 'A file is required');
+    }
+
+    const fileName = file.originalname;
+    const fileMime = file.mimetype || 'application/octet-stream';
+    const fileSize = file.size;
+    const fileUrl = 'stored';
+
+    const sql = `INSERT INTO attachments (task_id, uploaded_by, file_name, file_url, file_data, file_mime, file_size)
+                 VALUES (?, ?, ?, ?, ?, ?, ?)
+                 RETURNING id`;
+
+    db.query(
+      sql,
+      [taskId, uploadedBy, fileName, fileUrl, file.buffer, fileMime, fileSize],
+      (err, result) => {
+        if (err) {
+          return errorResponse(res, 500, 'CREATE_ERROR', 'Failed to upload attachment', err.message);
+        }
+
+        const attachmentId = result.insertId;
+        res.status(201).json({
+          success: true,
+          message: 'Attachment uploaded successfully',
+          attachmentId,
+          file_name: fileName,
+          file_mime: fileMime,
+          file_size: fileSize,
+        });
+      }
+    );
+  },
+
+  downloadAttachment: (req, res) => {
+    const { id } = req.params;
+
+    if (!id || Number.isNaN(Number(id))) {
+      return errorResponse(res, 400, 'INVALID_ID', 'Invalid attachment ID', 'Attachment ID must be a valid number');
+    }
+
+    const sql = `SELECT file_name, file_mime, file_data FROM attachments WHERE id = ?`;
+
+    db.query(sql, [id], (err, results) => {
+      if (err) {
+        return errorResponse(res, 500, 'FETCH_ERROR', 'Failed to get attachment', err.message);
+      }
+
+      if (!results.length || !results[0].file_data) {
+        return errorResponse(res, 404, 'NOT_FOUND', 'Attachment not found', `No file found with ID ${id}`);
+      }
+
+      const { file_name: fileName, file_mime: fileMime, file_data: fileData } = results[0];
+      const safeName = fileName.replace(/[^\w.\-() ]+/g, '_');
+
+      res.setHeader('Content-Type', fileMime || 'application/octet-stream');
+      res.setHeader('Content-Disposition', `attachment; filename="${safeName}"`);
+      res.send(fileData);
+    });
+  },
+
   addAttachment: (req, res) => {
     const { task_id, file_name, file_url } = req.body;
     const uploaded_by = req.user.id;
 
     if (!task_id || !file_name || !file_url) {
-      return errorResponse(res, 400, 'VALIDATION_ERROR', 'Missing required fields', 'task_id, file_name and file_url are required');
+      return errorResponse(
+        res,
+        400,
+        'VALIDATION_ERROR',
+        'Missing required fields',
+        'task_id, file_name and file_url are required'
+      );
     }
 
-    const sql = `INSERT INTO attachments (task_id, uploaded_by, file_name, file_url) 
-                 VALUES (?, ?, ?, ?)`;
+    const sql = `INSERT INTO attachments (task_id, uploaded_by, file_name, file_url)
+                 VALUES (?, ?, ?, ?)
+                 RETURNING id`;
 
     db.query(sql, [task_id, uploaded_by, file_name, file_url], (err, result) => {
       if (err) {
@@ -48,7 +128,7 @@ const AttachmentController = {
   deleteAttachment: (req, res) => {
     const { id } = req.params;
 
-    if (!id || isNaN(id)) {
+    if (!id || Number.isNaN(Number(id))) {
       return errorResponse(res, 400, 'INVALID_ID', 'Invalid attachment ID', 'Attachment ID must be a valid number');
     }
 
@@ -63,8 +143,7 @@ const AttachmentController = {
       }
       res.status(200).json({ success: true, message: 'Attachment deleted successfully' });
     });
-  }
-
+  },
 };
 
 module.exports = AttachmentController;

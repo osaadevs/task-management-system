@@ -5,9 +5,8 @@ import { useAuth, useRole } from '../context/AuthContext';
 import KanbanBoard from '../components/KanbanBoard';
 import TaskTableView from '../components/TaskTableView';
 import TaskModal from '../components/TaskModal';
-import StatCard from '../components/StatCard';
-import CompletionGauge from '../components/CompletionGauge';
-import { ClipboardIcon, TargetIcon, CheckIcon } from '../components/Icons';
+import ProjectStatsBar from '../components/ProjectStatsBar';
+import { ClipboardIcon } from '../components/Icons';
 
 export default function ProjectDetail() {
   const { projectId } = useParams();
@@ -31,8 +30,8 @@ export default function ProjectDetail() {
     setSearchParams(next, { replace: true });
   };
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
+  const loadData = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) setLoading(true);
     setError('');
     try {
       const [projectRes, tasksRes] = await Promise.all([
@@ -44,7 +43,7 @@ export default function ProjectDetail() {
     } catch (err) {
       setError(err.message);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [projectId]);
 
@@ -53,7 +52,7 @@ export default function ProjectDetail() {
   }, [loadData]);
 
   useEffect(() => {
-    const onTasksChanged = () => loadData();
+    const onTasksChanged = () => loadData({ silent: true });
     window.addEventListener('tms:tasks-changed', onTasksChanged);
     return () => window.removeEventListener('tms:tasks-changed', onTasksChanged);
   }, [loadData]);
@@ -67,7 +66,27 @@ export default function ProjectDetail() {
     }
   }, [searchParams, canManageTasks, setSearchParams]);
 
+  useEffect(() => {
+    const taskId = searchParams.get('task');
+    if (!taskId || loading) return;
+
+    const task = tasks.find((item) => String(item.id) === String(taskId));
+    if (!task) return;
+
+    setSelectedTask(task);
+    const next = new URLSearchParams(searchParams);
+    next.delete('task');
+    setSearchParams(next, { replace: true });
+  }, [searchParams, tasks, loading, setSearchParams]);
+
   const handleStatusChange = async (task, status) => {
+    if (task.status === status) return;
+
+    const previousStatus = task.status;
+    setTasks((prev) =>
+      prev.map((item) => (item.id === task.id ? { ...item, status } : item))
+    );
+
     try {
       if (canManageTasks) {
         await api.updateTask(task.id, {
@@ -83,9 +102,13 @@ export default function ProjectDetail() {
       } else {
         await api.updateTask(task.id, { status });
       }
-      await loadData();
       window.dispatchEvent(new Event('tms:tasks-changed'));
     } catch (err) {
+      setTasks((prev) =>
+        prev.map((item) =>
+          item.id === task.id ? { ...item, status: previousStatus } : item
+        )
+      );
       setError(err.message);
     }
   };
@@ -146,12 +169,7 @@ export default function ProjectDetail() {
       </header>
 
       {!loading && !error && (
-        <div className="stats-row stats-row--compact">
-          <StatCard label="Total Tasks" value={stats.total} accent="indigo" icon={<ClipboardIcon size={22} />} />
-          <StatCard label="In Progress" value={stats.inProgress} accent="blue" icon={<TargetIcon size={22} />} />
-          <StatCard label="Completed" value={stats.done} accent="green" icon={<CheckIcon size={22} />} />
-          <CompletionGauge percent={completionRate} label="Progress" />
-        </div>
+        <ProjectStatsBar stats={stats} completionRate={completionRate} />
       )}
 
       <div className="filter-bar">
@@ -220,8 +238,8 @@ export default function ProjectDetail() {
             setCreating(false);
             setSelectedTask(null);
           }}
-          onSaved={loadData}
-          onDeleted={loadData}
+          onSaved={() => loadData({ silent: true })}
+          onDeleted={() => loadData({ silent: true })}
         />
       )}
     </div>

@@ -1,13 +1,8 @@
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000/api';
+import { clearStoredAuth, getValidStoredAuth } from './utils/authStorage';
+import { API_BASE } from './config/apiConfig';
 
 function getStoredAuth() {
-  const raw = localStorage.getItem('tms_auth');
-  if (!raw) return null;
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return null;
-  }
+  return getValidStoredAuth();
 }
 
 function buildHeaders() {
@@ -25,8 +20,11 @@ async function handleResponse(response) {
   const data = await response.json().catch(() => ({}));
 
   if (response.status === 401) {
-    localStorage.removeItem('tms_auth');
-    if (!window.location.pathname.includes('/login')) {
+    clearStoredAuth();
+    const onAuthPage =
+      window.location.pathname.includes('/login') ||
+      window.location.pathname.includes('/forgot-password');
+    if (!onAuthPage) {
       window.location.href = '/login';
     }
   }
@@ -46,6 +44,14 @@ export const api = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
+    }).then(handleResponse);
+  },
+
+  forgotPassword(identifier) {
+    return fetch(`${API_BASE}/auth/forgot-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: identifier, username: identifier }),
     }).then(handleResponse);
   },
 
@@ -141,6 +147,20 @@ export const api = {
     }).then(handleResponse);
   },
 
+  getProfile() {
+    return fetch(`${API_BASE}/users/me`, {
+      headers: buildHeaders(),
+    }).then(handleResponse);
+  },
+
+  changePassword(currentPassword, newPassword) {
+    return fetch(`${API_BASE}/users/me/password`, {
+      method: 'PATCH',
+      headers: buildHeaders(),
+      body: JSON.stringify({ currentPassword, newPassword }),
+    }).then(handleResponse);
+  },
+
   getUsers() {
     return fetch(`${API_BASE}/users`, {
       headers: buildHeaders(),
@@ -202,6 +222,69 @@ export const api = {
       headers: buildHeaders(),
     }).then(handleResponse);
   },
+
+  getAttachments(taskId) {
+    return fetch(`${API_BASE}/attachments/${taskId}`, {
+      headers: buildHeaders(),
+    }).then(handleResponse);
+  },
+
+  uploadAttachment(taskId, file) {
+    const auth = getStoredAuth();
+    const formData = new FormData();
+    formData.append('task_id', String(taskId));
+    formData.append('file', file);
+
+    const headers = {};
+    if (auth?.token) {
+      headers.Authorization = `Bearer ${auth.token}`;
+    }
+
+    return fetch(`${API_BASE}/attachments/upload`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    }).then(handleResponse);
+  },
+
+  async downloadAttachment(id, fileName) {
+    const auth = getStoredAuth();
+    const headers = {};
+    if (auth?.token) {
+      headers.Authorization = `Bearer ${auth.token}`;
+    }
+
+    const response = await fetch(`${API_BASE}/attachments/download/${id}`, { headers });
+
+    if (response.status === 401) {
+      clearStoredAuth();
+      if (!window.location.pathname.includes('/login')) {
+        window.location.href = '/login';
+      }
+    }
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.message || data.error || 'Download failed');
+    }
+
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName || 'download';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  },
+
+  deleteAttachment(id) {
+    return fetch(`${API_BASE}/attachments/${id}`, {
+      method: 'DELETE',
+      headers: buildHeaders(),
+    }).then(handleResponse);
+  },
 };
 
-export { getStoredAuth, API_BASE };
+export { getStoredAuth, clearStoredAuth, API_BASE };

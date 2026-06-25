@@ -85,6 +85,28 @@ function toPgConfig(parsed) {
 }
 
 function getConnectionCandidates() {
+  const hasSplitConfig =
+    process.env.DB_HOST && process.env.DB_USER && process.env.DB_NAME;
+
+  if (hasSplitConfig) {
+    const isRemote =
+      process.env.DB_HOST !== 'localhost' &&
+      process.env.DB_HOST !== '127.0.0.1';
+    const useSsl = process.env.DB_SSL === 'true' || isRemote;
+
+    return [
+      {
+        label: `${process.env.DB_HOST}:${process.env.DB_PORT || 5432}`,
+        host: process.env.DB_HOST,
+        port: Number(process.env.DB_PORT) || 5432,
+        user: process.env.DB_USER,
+        password: process.env.DB_PASSWORD,
+        database: process.env.DB_NAME || 'postgres',
+        ssl: useSsl ? { rejectUnauthorized: false } : undefined,
+      },
+    ];
+  }
+
   const databaseUrl =
     process.env.SUPABASE_POOLER_URL ||
     process.env.DATABASE_URL ||

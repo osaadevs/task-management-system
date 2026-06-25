@@ -56,8 +56,10 @@ export default function ResetPassword() {
         <ThemeToggle className="theme-switch--floating" />
       </div>
       <form className="auth-card auth-card--narrow auth-card--centered auth-card--glass auth-form" onSubmit={handleSubmit}>
-        <h1>Reset your password</h1>
-        <p className="muted">This is your first login. Please set a new password to continue.</p>
+        <h1>Set a new password</h1>
+        <p className="muted">
+          Use a strong password you have not used before. This is required after your first login or a temporary password reset.
+        </p>
         {error && <div className="alert alert--error">{error}</div>}
 
         <label>

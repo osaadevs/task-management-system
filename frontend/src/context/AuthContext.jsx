@@ -1,26 +1,36 @@
-import { createContext, useContext, useMemo, useState } from 'react';
-import { getStoredAuth } from '../api';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import {
+  clearStoredAuth,
+  getValidStoredAuth,
+  setStoredAuth,
+  updateStoredAuth,
+} from '../utils/authStorage';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [auth, setAuth] = useState(() => getStoredAuth());
+  const [auth, setAuth] = useState(() => getValidStoredAuth());
 
-  const login = (payload) => {
-    localStorage.setItem('tms_auth', JSON.stringify(payload));
+  useEffect(() => {
+    setAuth(getValidStoredAuth());
+  }, []);
+
+  const login = (payload, options = {}) => {
+    setStoredAuth(payload, options);
     setAuth(payload);
   };
 
   const logout = () => {
-    localStorage.removeItem('tms_auth');
+    clearStoredAuth();
     setAuth(null);
   };
 
   const clearMustReset = () => {
-    if (!auth) return;
-    const next = { ...auth, mustResetPassword: false };
-    localStorage.setItem('tms_auth', JSON.stringify(next));
-    setAuth(next);
+    const next = updateStoredAuth((current) => ({
+      ...current,
+      mustResetPassword: false,
+    }));
+    if (next) setAuth(next);
   };
 
   const value = useMemo(

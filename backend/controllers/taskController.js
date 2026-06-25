@@ -146,7 +146,7 @@ const TaskController = {
               'New task assigned',
               `You were assigned to "${title}"`,
               'assignment',
-              { emitTaskUpdate: true, taskId }
+              { emitTaskUpdate: true, taskId, projectId: Number(project_id) }
             );
           } else {
             emitTaskUpdated(taskId);
@@ -272,7 +272,11 @@ const TaskController = {
                 'New task assigned',
                 `You were assigned to "${title}"`,
                 'assignment',
-                { emitTaskUpdate: !statusChanged, taskId: Number(id) }
+                {
+                  emitTaskUpdate: !statusChanged,
+                  taskId: Number(id),
+                  projectId: Number(existing.project_id),
+                }
               );
             }
 

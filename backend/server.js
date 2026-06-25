@@ -17,6 +17,7 @@ const commentRoutes = require('./routes/commentRoutes');
 const projectRoutes = require('./routes/projectRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const attachmentRoutes = require('./routes/attachmentRoutes');
+const { getEmailStatus } = require('./utils/sendEmail');
 
 const allowedOrigins = (process.env.CLIENT_ORIGIN || 'http://localhost:5173')
   .split(',')
@@ -30,7 +31,12 @@ socketService.init(server);
 
 app.use(
   cors({
-    origin: allowedOrigins.length ? allowedOrigins : true,
+    origin(origin, callback) {
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      if (/^http:\/\/localhost:\d+$/.test(origin)) return callback(null, true);
+      return callback(new Error(`CORS blocked for origin: ${origin}`));
+    },
     credentials: true,
   })
 );
@@ -50,7 +56,7 @@ app.get('/', (req, res) => {
   res.json({ message: 'Task Management System API is running!' });
 });
 
-app.get('/api/health', (req, res) => {
+app.get('/api/health', async (req, res) => {
   if (!hasDatabaseConfig()) {
     return res.status(503).json({
       status: 'error',
@@ -59,22 +65,48 @@ app.get('/api/health', (req, res) => {
     });
   }
 
-  db.query('SELECT 1 AS ok', (err) => {
-    if (err) {
-      return res.status(503).json({
-        status: 'error',
-        database: 'disconnected',
-        message: 'Database connection failed',
-        detail: err.message,
-      });
-    }
-
+  const respondHealthy = () =>
     res.json({
       status: 'ok',
       database: 'connected',
       connection: db.getActiveConfigLabel(),
       message: 'API and database are healthy',
     });
+
+  const pingDatabase = () =>
+    new Promise((resolve, reject) => {
+      db.query('SELECT 1 AS ok', (err) => (err ? reject(err) : resolve()));
+    });
+
+  try {
+    await pingDatabase();
+    return respondHealthy();
+  } catch (firstErr) {
+    try {
+      await db.connectWithFallback();
+      await pingDatabase();
+      return respondHealthy();
+    } catch (secondErr) {
+      return res.status(503).json({
+        status: 'error',
+        database: 'disconnected',
+        message: 'Database connection failed',
+        detail: secondErr.message,
+      });
+    }
+  }
+});
+
+app.get('/api/health/email', (req, res) => {
+  const email = getEmailStatus();
+  res.json({
+    status: email.configured ? 'ok' : 'missing',
+    email,
+    hint: email.configured
+      ? email.usingSandboxFrom
+        ? 'Using Resend sandbox sender. Only verified recipient emails will receive mail until vendra.best is verified in Resend.'
+        : 'Email is configured.'
+      : 'Set RESEND_API_KEY on Render. Optionally set EMAIL_FROM to Taskora <noreply@vendra.best>.',
   });
 });
 
@@ -106,7 +138,7 @@ async function checkUpcomingDeadlines() {
     JOIN task_assignments ta ON ta.task_id = t.id
     WHERE t.status != 'Completed'
       AND t.due_date IS NOT NULL
-      AND t.due_date <= DATE_ADD(CURDATE(), INTERVAL 1 DAY)
+      AND t.due_date <= CURRENT_DATE + INTERVAL '1 day'
       AND t.due_date >= CURRENT_DATE
   `;
 
@@ -128,6 +160,27 @@ async function checkUpcomingDeadlines() {
   }
 }
 
+async function connectDatabaseWithRetry(attempts = 5) {
+  let lastError;
+
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      await db.connectWithFallback();
+      return;
+    } catch (error) {
+      lastError = error;
+      console.error(
+        `Database connection attempt ${attempt}/${attempts} failed: ${error.message}`
+      );
+      if (attempt < attempts) {
+        await new Promise((resolve) => setTimeout(resolve, 2000 * attempt));
+      }
+    }
+  }
+
+  throw lastError;
+}
+
 async function startServer() {
   if (!process.env.JWT_SECRET) {
     console.warn('Warning: JWT_SECRET is not set');
@@ -135,7 +188,7 @@ async function startServer() {
 
   try {
     if (hasDatabaseConfig()) {
-      await db.connectWithFallback();
+      await connectDatabaseWithRetry();
       setInterval(checkUpcomingDeadlines, 60 * 60 * 1000);
       checkUpcomingDeadlines();
     }

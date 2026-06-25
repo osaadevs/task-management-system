@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import { BellIcon, PinIcon, RefreshIcon, CommentIcon, ClockIcon, UserIcon } from './Icons';
+import { canOpenTask, getTaskPath } from '../utils/notificationNavigation';
 
 const TYPE_ICONS = {
   assignment: PinIcon,
@@ -12,6 +14,7 @@ const TYPE_ICONS = {
 };
 
 export default function NotificationPanel() {
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState([]);
   const [unread, setUnread] = useState(0);
@@ -60,9 +63,16 @@ export default function NotificationPanel() {
     return () => document.removeEventListener('mousedown', onClickOutside);
   }, []);
 
-  const handleMarkRead = async (id) => {
-    await api.markNotificationRead(id);
-    await loadNotifications();
+  const handleOpen = async (item) => {
+    if (!item.is_read) {
+      await api.markNotificationRead(item.id);
+      await loadNotifications();
+    }
+
+    if (canOpenTask(item)) {
+      setOpen(false);
+      navigate(getTaskPath(item));
+    }
   };
 
   const handleMarkAllRead = async () => {
@@ -102,8 +112,8 @@ export default function NotificationPanel() {
                 <button
                   key={item.id}
                   type="button"
-                  className={`notification-item ${item.is_read ? 'is-read' : ''}`}
-                  onClick={() => !item.is_read && handleMarkRead(item.id)}
+                  className={`notification-item ${item.is_read ? 'is-read' : ''}${canOpenTask(item) ? ' notification-item--link' : ''}`}
+                  onClick={() => handleOpen(item)}
                 >
                   <span className="notification-item__icon">
                     <Icon size={18} />

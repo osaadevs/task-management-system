@@ -158,6 +158,9 @@ model Attachment {
   uploadedBy Int      @map("uploaded_by")
   fileName   String   @map("file_name") @db.VarChar(255)
   fileUrl    String   @map("file_url") @db.VarChar(500)
+  fileData   Bytes?   @map("file_data")
+  fileMime   String?  @map("file_mime") @db.VarChar(127)
+  fileSize   Int?     @map("file_size")
   uploadedAt DateTime @default(now()) @map("uploaded_at")
 
   task     Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
@@ -174,6 +177,8 @@ model Notification {
   title     String   @db.VarChar(200)
   message   String   @db.Text
   type      String   @db.VarChar(30)
+  taskId    Int?     @map("task_id")
+  projectId Int?     @map("project_id")
   isRead    Boolean  @default(false) @map("is_read")
   createdAt DateTime @default(now()) @map("created_at")
 

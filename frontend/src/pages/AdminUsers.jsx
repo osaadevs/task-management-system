@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { api } from '../api';
 import { useRole } from '../context/AuthContext';
+import { scrollToElement } from '../utils/scrollToElement';
 
 const ROLES = ['Admin', 'Project Manager', 'Collaborator'];
 const ROLE_FILTERS = ['All Members', 'Admins', 'PMs', 'Collaborators'];
@@ -41,6 +42,8 @@ export default function AdminUsers() {
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(true);
+  const formPanelRef = useRef(null);
+  const alertRef = useRef(null);
 
   const loadUsers = async () => {
     setLoading(true);
@@ -60,6 +63,18 @@ export default function AdminUsers() {
   useEffect(() => {
     if (canViewAdmin) loadUsers();
   }, [canViewAdmin]);
+
+  useEffect(() => {
+    if (showInvite) {
+      scrollToElement(formPanelRef.current, { block: 'center' });
+    }
+  }, [showInvite, editId]);
+
+  useEffect(() => {
+    if (error || message) {
+      scrollToElement(alertRef.current, { block: 'nearest', focus: false });
+    }
+  }, [error, message]);
 
   const filteredUsers = useMemo(() => {
     let list = users;
@@ -187,11 +202,23 @@ export default function AdminUsers() {
         />
       </div>
 
-      {error && <div className="alert alert--error">{error}</div>}
-      {message && <div className="alert alert--success">{message}</div>}
+      {error && (
+        <div ref={alertRef} className="alert alert--error">
+          {error}
+        </div>
+      )}
+      {message && (
+        <div ref={alertRef} className="alert alert--success">
+          {message}
+        </div>
+      )}
 
       {showInvite && (
-        <form className="panel panel--invite" onSubmit={handleSubmit}>
+        <form
+          ref={formPanelRef}
+          className={`panel panel--invite scroll-target${editId ? ' panel--editing' : ''}`}
+          onSubmit={handleSubmit}
+        >
           <h3>{editId ? 'Edit member' : 'Invite new member'}</h3>
           <div className="form-grid form-grid--3">
             <label>
@@ -252,7 +279,7 @@ export default function AdminUsers() {
                 <tr>
                   <th>Member</th>
                   <th>Email</th>
-                  <th>Role</th>
+                  <th className="data-table__role-col">Role</th>
                   <th>Status</th>
                   <th className="data-table__actions-col">Actions</th>
                 </tr>
@@ -274,7 +301,7 @@ export default function AdminUsers() {
                         </span>
                       </td>
                       <td className="data-table__email">{user.email}</td>
-                      <td>
+                      <td className="data-table__role-col">
                         <span className={`role-badge ${roleBadgeClass(user.role)}`}>
                           {user.role}
                         </span>

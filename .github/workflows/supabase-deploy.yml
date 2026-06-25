@@ -26,13 +26,65 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Verify Supabase secrets
+        run: |
+          missing=0
+          for name in SUPABASE_ACCESS_TOKEN SUPABASE_DB_PASSWORD SUPABASE_PROJECT_ID; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Missing GitHub secret: $name"
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            echo "Add secrets under Settings → Secrets and variables → Actions → Repository secrets"
+            exit 1
+          fi
+          if [ "${#SUPABASE_PROJECT_ID}" -lt 10 ]; then
+            echo "::error::SUPABASE_PROJECT_ID looks too short. Use your project ref, e.g. pxivckosjllfhzpzbqac"
+            exit 1
+          fi
+
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v2
         with:
           version: latest
 
       - name: Link Supabase project
-        run: supabase link --project-ref "$SUPABASE_PROJECT_ID" --password "$SUPABASE_DB_PASSWORD"
+        run: supabase link --project-ref "$SUPABASE_PROJECT_ID" --password "$SUPABASE_DB_PASSWORD" --yes
 
       - name: Apply pending migrations
-        run: supabase db push --include-all
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          set -e
+          ENCODED_PASSWORD=$(python3 -c "import urllib.parse, os; print(urllib.parse.quote(os.environ['SUPABASE_DB_PASSWORD'], safe=''))")
+          PROJECT_ID="${SUPABASE_PROJECT_ID}"
+
+          # Same session pooler format as Render (backend/.env.example)
+          POOLER_URL="postgresql://postgres.${PROJECT_ID}:${ENCODED_PASSWORD}@aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres"
+          DIRECT_URL="postgresql://postgres:${ENCODED_PASSWORD}@db.${PROJECT_ID}.supabase.co:5432/postgres"
+
+          run_push() {
+            local label="$1"
+            local url="$2"
+            echo "Trying ${label}..."
+            if supabase db push --db-url "$url" --include-all; then
+              echo "Migrations applied via ${label}"
+              return 0
+            fi
+            return 1
+          }
+
+          if run_push "session pooler" "$POOLER_URL"; then
+            exit 0
+          fi
+
+          if run_push "direct database host" "$DIRECT_URL"; then
+            exit 0
+          fi
+
+          echo "::error::Could not connect to Supabase."
+          echo "1. Set SUPABASE_PROJECT_ID to pxivckosjllfhzpzbqac (no spaces)"
+          echo "2. Set SUPABASE_DB_PASSWORD to the exact same value as Render DB_PASSWORD"
+          echo "3. Regenerate SUPABASE_ACCESS_TOKEN if needed"
+          exit 1
