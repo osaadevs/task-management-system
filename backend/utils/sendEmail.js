@@ -26,21 +26,32 @@ function getFrontendUrl() {
   return origin.replace(/\/$/, '');
 }
 
-function getEmailLogoUrl() {
-  if (process.env.EMAIL_LOGO_URL?.trim()) {
-    return process.env.EMAIL_LOGO_URL.trim();
-  }
-  return `${getFrontendUrl()}/taskora-email-logo.png`;
+const EMAIL_LOGO_CID = 'taskora-logo';
+
+function getLogoFilePath() {
+  return path.join(__dirname, '../assets/taskora-email-logo.png');
 }
 
-function getEmailLogoSrc() {
+function getLogoInlineAttachment() {
   try {
-    const logoPath = path.join(__dirname, '../assets/taskora-email-logo.png');
-    const buffer = fs.readFileSync(logoPath);
-    return `data:image/png;base64,${buffer.toString('base64')}`;
+    const buffer = fs.readFileSync(getLogoFilePath());
+    return {
+      filename: 'taskora-email-logo.png',
+      content: buffer.toString('base64'),
+      contentType: 'image/png',
+      contentId: EMAIL_LOGO_CID,
+    };
   } catch {
-    return getEmailLogoUrl();
+    return null;
   }
+}
+
+function getLogoHeaderHtml() {
+  if (getLogoInlineAttachment()) {
+    return `<img src="cid:${EMAIL_LOGO_CID}" alt="Taskora" width="52" height="52" style="display:block;width:52px;height:52px;margin:0 0 28px;border-radius:14px;" />`;
+  }
+
+  return `<p style="margin:0 0 28px;font-size:22px;line-height:1;font-weight:700;color:#111827;">Taskora</p>`;
 }
 
 function isEmailConfigured() {
@@ -64,12 +75,13 @@ function getEmailStatus() {
     fromAddress: from,
     usingSandboxFrom: from.includes('@resend.dev'),
     frontendUrl: getFrontendUrl(),
-    logoSource: getEmailLogoSrc().startsWith('data:') ? 'embedded' : 'url',
+    logoSource: getLogoInlineAttachment() ? 'inline-cid' : 'missing',
+    logoCid: EMAIL_LOGO_CID,
   };
 }
 
 function renderEmailLayout({ greeting, paragraphs, credentials, ctaLabel, ctaUrl, footnotes = [] }) {
-  const logoUrl = escapeHtml(getEmailLogoSrc());
+  const logoHtml = getLogoHeaderHtml();
   const safeGreeting = escapeHtml(greeting);
   const bodyHtml = paragraphs
     .map(
@@ -117,7 +129,7 @@ function renderEmailLayout({ greeting, paragraphs, credentials, ctaLabel, ctaUrl
           <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width:560px;background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;">
             <tr>
               <td style="padding:36px 32px 28px;">
-                <img src="${logoUrl}" alt="Taskora" width="52" height="52" style="display:block;width:52px;height:52px;margin:0 0 28px;border-radius:14px;" />
+                ${logoHtml}
                 <p style="margin:0 0 18px;font-size:16px;line-height:24px;color:#111827;">${safeGreeting}</p>
                 ${bodyHtml}
                 ${credentialsHtml}
@@ -140,12 +152,6 @@ function renderEmailLayout({ greeting, paragraphs, credentials, ctaLabel, ctaUrl
 }
 
 async function sendWelcomeEmail(toEmail, fullName, temporaryPassword) {
-  const client = getClient();
-
-  if (!isEmailConfigured() || !client) {
-    throw new Error('Resend not configured. Set RESEND_API_KEY and EMAIL_FROM on the server.');
-  }
-
   const loginUrl = `${getFrontendUrl()}/login`;
   const safeName = escapeHtml(fullName);
   const safeEmail = escapeHtml(toEmail);
@@ -168,10 +174,8 @@ async function sendWelcomeEmail(toEmail, fullName, temporaryPassword) {
     ],
   });
 
-  const { data, error } = await client.emails.send({
-    from: getFromAddress(),
-    to: [toEmail.trim()],
-    replyTo: process.env.EMAIL_REPLY_TO?.trim() || undefined,
+  return sendTransactionalEmail({
+    to: toEmail,
     subject: 'Welcome to Taskora — your account details',
     html,
     text: [
@@ -183,27 +187,9 @@ async function sendWelcomeEmail(toEmail, fullName, temporaryPassword) {
       'You must change your password on first login.',
     ].join('\n'),
   });
-
-  if (error) {
-    const detail = error.message || 'Failed to send welcome email';
-    if (/only send.*yourself|testing emails|verify a domain|not authorized/i.test(detail)) {
-      throw new Error(
-        `${detail} Add and verify vendra.best in Resend, or verify this recipient email in Resend.`
-      );
-    }
-    throw new Error(detail);
-  }
-
-  return data;
 }
 
 async function sendForgotPasswordEmail(toEmail, fullName, temporaryPassword) {
-  const client = getClient();
-
-  if (!isEmailConfigured() || !client) {
-    throw new Error('Resend not configured. Set RESEND_API_KEY and EMAIL_FROM on the server.');
-  }
-
   const loginUrl = `${getFrontendUrl()}/login`;
   const safeName = escapeHtml(fullName);
   const safeEmail = escapeHtml(toEmail);
@@ -227,10 +213,8 @@ async function sendForgotPasswordEmail(toEmail, fullName, temporaryPassword) {
     ],
   });
 
-  const { data, error } = await client.emails.send({
-    from: getFromAddress(),
-    to: [toEmail.trim()],
-    replyTo: process.env.EMAIL_REPLY_TO?.trim() || undefined,
+  return sendTransactionalEmail({
+    to: toEmail,
     subject: 'Taskora — your temporary password',
     html,
     text: [
@@ -243,9 +227,33 @@ async function sendForgotPasswordEmail(toEmail, fullName, temporaryPassword) {
       'If you did not request this, contact your administrator.',
     ].join('\n'),
   });
+}
+
+async function sendTransactionalEmail({ to, subject, html, text }) {
+  const client = getClient();
+
+  if (!isEmailConfigured() || !client) {
+    throw new Error('Resend not configured. Set RESEND_API_KEY and EMAIL_FROM on the server.');
+  }
+
+  const logoAttachment = getLogoInlineAttachment();
+  const payload = {
+    from: getFromAddress(),
+    to: [to.trim()],
+    replyTo: process.env.EMAIL_REPLY_TO?.trim() || undefined,
+    subject,
+    html,
+    text,
+  };
+
+  if (logoAttachment) {
+    payload.attachments = [logoAttachment];
+  }
+
+  const { data, error } = await client.emails.send(payload);
 
   if (error) {
-    const detail = error.message || 'Failed to send password reset email';
+    const detail = error.message || 'Failed to send email';
     if (/only send.*yourself|testing emails|verify a domain|not authorized/i.test(detail)) {
       throw new Error(
         `${detail} Add and verify vendra.best in Resend, or verify this recipient email in Resend.`
