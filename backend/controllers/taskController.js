@@ -65,17 +65,23 @@ function checkAssignees(assigneeIds) {
 }
 
 // BE-9: returns an error response and true if assignee_ids are invalid, else false.
-async function rejectInvalidAssignees(res, assignee_ids, errorCode) {
+// `alreadyAssignedIds` (the task's current assignees) are exempt from the active-user
+// check, so a previously-assigned member who was later deactivated does not block an
+// Admin/PM from editing the task — only genuinely NEW assignees must be active users.
+async function rejectInvalidAssignees(res, assignee_ids, errorCode, alreadyAssignedIds = []) {
   if (assignee_ids === undefined) return false;
   if (!Array.isArray(assignee_ids)) {
     validationError(res, [{ field: 'assignee_ids', message: 'assignee_ids must be an array' }]);
     return true;
   }
-  if (!assignee_ids.length) return false;
+
+  const already = new Set((alreadyAssignedIds || []).map(Number));
+  const newIds = assignee_ids.map(Number).filter((id) => !already.has(id));
+  if (!newIds.length) return false;
 
   let check;
   try {
-    check = await checkAssignees(assignee_ids);
+    check = await checkAssignees(newIds);
   } catch (err) {
     errorResponse(res, 500, errorCode, 'Failed to validate assignees', err.message);
     return true;
@@ -292,8 +298,10 @@ const TaskController = {
         return validationError(res, [{ field: 'due_date', message: dueDateError }]);
       }
 
-      // BE-9: reject unknown/inactive assignees before persisting the update.
-      if (await rejectInvalidAssignees(res, assignee_ids, 'TASK_UPDATE_ERROR')) return;
+      // BE-9: validate only newly-added assignees (existing ones may have since been
+      // deactivated and are re-submitted by the UI — they must not block the update).
+      const previousAssigneeIds = await getAssigneeIdsAsync(id);
+      if (await rejectInvalidAssignees(res, assignee_ids, 'TASK_UPDATE_ERROR', previousAssigneeIds)) return;
 
       const taskData = {
         title: sanitizeText(title), // BE-6
@@ -313,7 +321,6 @@ const TaskController = {
 
         try {
           if (Array.isArray(assignee_ids)) {
-            const previousAssigneeIds = await getAssigneeIdsAsync(id);
             await syncAssignments(id, assignee_ids);
 
             const newlyAssigned = recipientsExcept(

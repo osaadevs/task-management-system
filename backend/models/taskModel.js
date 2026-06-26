@@ -52,7 +52,15 @@ const TaskModel = {
     const allowedSortFields = ['due_date', 'priority', 'status', 'created_at', 'title'];
     const sortBy = allowedSortFields.includes(filters.sortBy) ? filters.sortBy : 'created_at';
     const sortOrder = filters.sortOrder === 'asc' ? 'ASC' : 'DESC';
-    sql += ` ORDER BY tasks.${sortBy} ${sortOrder}`;
+    // FE-4: priority/status are stored as text; order them by semantic rank rather
+    // than alphabetically so "Priority ↓" really means High → Medium → Low.
+    if (sortBy === 'priority') {
+      sql += ` ORDER BY CASE tasks.priority WHEN 'High' THEN 3 WHEN 'Medium' THEN 2 WHEN 'Low' THEN 1 ELSE 0 END ${sortOrder}`;
+    } else if (sortBy === 'status') {
+      sql += ` ORDER BY CASE tasks.status WHEN 'To Do' THEN 1 WHEN 'In Progress' THEN 2 WHEN 'Completed' THEN 3 ELSE 0 END ${sortOrder}`;
+    } else {
+      sql += ` ORDER BY tasks.${sortBy} ${sortOrder}`;
+    }
 
     db.query(sql, values, callback);
   },

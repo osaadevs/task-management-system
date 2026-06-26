@@ -18,14 +18,22 @@ const ProjectModel = {
     const values = [];
 
     if (filters.userRole === 'Collaborator') {
+      // BE-42: a Collaborator's projects = ones they created, are a member of, OR are
+      // assigned a task in (mirrors the creator-or-assignee rule used for task access,
+      // so assignment-notification deep links resolve instead of 403-ing).
       sql += ` WHERE (
                  projects.created_by = ?
                  OR EXISTS (
                    SELECT 1 FROM project_members pm
                    WHERE pm.project_id = projects.id AND pm.user_id = ?
                  )
+                 OR EXISTS (
+                   SELECT 1 FROM tasks t
+                   JOIN task_assignments ta ON ta.task_id = t.id
+                   WHERE t.project_id = projects.id AND ta.user_id = ?
+                 )
                )`;
-      values.push(filters.userId, filters.userId);
+      values.push(filters.userId, filters.userId, filters.userId);
     }
 
     sql += ` ORDER BY projects.created_at DESC`;
@@ -42,6 +50,7 @@ const ProjectModel = {
 
   // BE-42: membership check used to scope project detail for Collaborators.
   isUserInProject: (projectId, userId, callback) => {
+    // BE-42: creator OR member OR assignee of a task in the project (see getAllProjects).
     const sql = `SELECT 1
                  FROM projects p
                  WHERE p.id = ? AND (
@@ -50,9 +59,14 @@ const ProjectModel = {
                      SELECT 1 FROM project_members pm
                      WHERE pm.project_id = p.id AND pm.user_id = ?
                    )
+                   OR EXISTS (
+                     SELECT 1 FROM tasks t
+                     JOIN task_assignments ta ON ta.task_id = t.id
+                     WHERE t.project_id = p.id AND ta.user_id = ?
+                   )
                  )
                  LIMIT 1`;
-    db.query(sql, [projectId, userId, userId], callback);
+    db.query(sql, [projectId, userId, userId, userId], callback);
   },
 
   getProjectMembers: (project_id, callback) => {
