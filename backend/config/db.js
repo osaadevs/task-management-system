@@ -78,16 +78,24 @@ async function getPool() {
   return pool;
 }
 
-async function runQuery(pgSql, params) {
+async function runQuery(pgSql, params = []) {
+  const values = Array.isArray(params) ? params : [];
+    // Supabase pooler (Supavisor) can reject prepared statements on some modes.
+    // Use simple query mode for parameterized SQL so login and other API queries work.
+  const queryConfig =
+    values.length > 0
+      ? { text: pgSql, values, queryMode: 'simple' }
+      : pgSql;
+
   try {
     const activePool = await getPool();
-    return await activePool.query(pgSql, params);
+    return await activePool.query(queryConfig);
   } catch (err) {
     if (STALE_CONNECTION.test(err.message)) {
       pool = null;
       activeConfigLabel = null;
       const activePool = await connectWithFallback();
-      return activePool.query(pgSql, params);
+      return activePool.query(queryConfig);
     }
     throw err;
   }

@@ -50,24 +50,16 @@ function buildPoolerAttempts(parsed) {
   const password = parsed.password;
   const database = parsed.database || 'postgres';
 
-  return POOLER_HOSTS.flatMap((host) => [
-    {
-      label: `${host}:5432 (session)`,
-      host,
-      port: 5432,
-      user: `postgres.${projectRef}`,
-      password,
-      database,
-    },
-    {
-      label: `${host}:6543 (transaction)`,
-      host,
-      port: 6543,
-      user: `postgres.${projectRef}`,
-      password,
-      database,
-    },
-  ]);
+  // Session pooler (5432) only — transaction mode (6543) breaks parameterized queries
+  // with node-pg on long-lived hosts like Render.
+  return POOLER_HOSTS.map((host) => ({
+    label: `${host}:5432 (session)`,
+    host,
+    port: 5432,
+    user: `postgres.${projectRef}`,
+    password,
+    database,
+  }));
 }
 
 function toPgConfig(parsed) {

@@ -10,6 +10,7 @@ const globalLimiter = rateLimit({
   limit: 300,
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { trustProxy: false, xForwardedForHeader: false },
   message: {
     errorCode: 'RATE_LIMITED',
     message: 'Too many requests. Please slow down and try again later.',
@@ -24,6 +25,7 @@ const loginLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skipSuccessfulRequests: true,
+  validate: { trustProxy: false, xForwardedForHeader: false },
   message: {
     errorCode: 'RATE_LIMITED',
     message: 'Too many login attempts. Please try again in about 15 minutes.',
