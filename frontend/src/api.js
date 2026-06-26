@@ -2,6 +2,11 @@ import { clearStoredAuth, getValidStoredAuth } from './utils/authStorage';
 import { API_BASE } from './config/apiConfig';
 
 const DEFAULT_TIMEOUT_MS = 45_000;
+const COLD_START_TIMEOUT_MS = 90_000;
+const KEEP_ALIVE_MS = 12 * 60 * 1000;
+
+let warmPromise = null;
+let keepAliveTimer = null;
 
 function fetchWithTimeout(url, options = {}, timeoutMs = DEFAULT_TIMEOUT_MS) {
   const controller = new AbortController();
@@ -19,10 +24,36 @@ function fetchWithTimeout(url, options = {}, timeoutMs = DEFAULT_TIMEOUT_MS) {
     .finally(() => clearTimeout(timer));
 }
 
-/** Ping API on production so Render free tier can wake before the user submits login. */
+/** Wake Render free tier; dedupes concurrent health checks. */
 export function warmApiHealth() {
-  if (!import.meta.env.PROD) return;
-  fetchWithTimeout(`${API_BASE}/health`, {}, 20_000).catch(() => {});
+  if (!import.meta.env.PROD) return Promise.resolve();
+
+  if (!warmPromise) {
+    warmPromise = fetchWithTimeout(`${API_BASE}/health`, {}, COLD_START_TIMEOUT_MS)
+      .then(() => {})
+      .catch(() => {})
+      .finally(() => {
+        warmPromise = null;
+      });
+  }
+
+  return warmPromise;
+}
+
+/** Keep pinging while the app is open so the API stays warm. */
+export function startApiKeepAlive() {
+  if (!import.meta.env.PROD) return () => {};
+
+  warmApiHealth();
+  if (keepAliveTimer) clearInterval(keepAliveTimer);
+  keepAliveTimer = setInterval(() => warmApiHealth(), KEEP_ALIVE_MS);
+
+  return () => {
+    if (keepAliveTimer) {
+      clearInterval(keepAliveTimer);
+      keepAliveTimer = null;
+    }
+  };
 }
 
 function getStoredAuth() {
@@ -62,43 +93,68 @@ async function handleResponse(response) {
   if (!response.ok) {
     const message =
       data.message || data.error || data.description || defaultMessageFor(response.status);
-    // FE-5/FE-6: throw a rich error so callers can map field errors to inputs and
-    // branch on 403/429 instead of seeing one flattened string.
     const error = new Error(message);
     error.status = response.status;
     error.code = data.errorCode || null;
-    error.fieldErrors = Array.isArray(data.errors) ? data.errors : null; // FE-5
-    error.forbidden = response.status === 403; // FE-6
-    error.rateLimited = response.status === 429; // 429 branch
+    error.fieldErrors = Array.isArray(data.errors) ? data.errors : null;
+    error.forbidden = response.status === 403;
+    error.rateLimited = response.status === 429;
     throw error;
   }
 
   return data;
 }
 
+async function apiFetch(url, options = {}, timeoutMs = DEFAULT_TIMEOUT_MS) {
+  const method = (options.method || 'GET').toUpperCase();
+  const canRetry = method === 'GET' || method === 'HEAD';
+
+  const execute = (ms) => fetchWithTimeout(url, options, ms).then(handleResponse);
+
+  try {
+    return await execute(timeoutMs);
+  } catch (err) {
+    const isTransient =
+      err.code === 'REQUEST_TIMEOUT' ||
+      err.message === 'Failed to fetch' ||
+      err.name === 'TypeError';
+
+    if (canRetry && isTransient && import.meta.env.PROD) {
+      await warmApiHealth();
+      return execute(COLD_START_TIMEOUT_MS);
+    }
+
+    throw err;
+  }
+}
+
 export const api = {
   login(email, password) {
-    return fetchWithTimeout(`${API_BASE}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    }, 60_000).then(handleResponse);
+    return fetchWithTimeout(
+      `${API_BASE}/auth/login`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      },
+      COLD_START_TIMEOUT_MS
+    ).then(handleResponse);
   },
 
   forgotPassword(identifier) {
-    return fetch(`${API_BASE}/auth/forgot-password`, {
+    return apiFetch(`${API_BASE}/auth/forgot-password`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: identifier, username: identifier }),
-    }).then(handleResponse);
+    });
   },
 
   resetPassword(newPassword) {
-    return fetch(`${API_BASE}/auth/reset-password`, {
+    return apiFetch(`${API_BASE}/auth/reset-password`, {
       method: 'POST',
       headers: buildHeaders(),
       body: JSON.stringify({ newPassword }),
-    }).then(handleResponse);
+    });
   },
 
   getTasks(params = {}) {
@@ -106,174 +162,156 @@ export const api = {
       Object.entries(params).filter(([, value]) => value !== '' && value != null)
     ).toString();
     const url = query ? `${API_BASE}/tasks?${query}` : `${API_BASE}/tasks`;
-    return fetch(url, { headers: buildHeaders() }).then(handleResponse);
+    return apiFetch(url, { headers: buildHeaders() });
   },
 
   getTask(id) {
-    return fetch(`${API_BASE}/tasks/${id}`, {
-      headers: buildHeaders(),
-    }).then(handleResponse);
+    return apiFetch(`${API_BASE}/tasks/${id}`, { headers: buildHeaders() });
   },
 
   createTask(task) {
-    return fetch(`${API_BASE}/tasks`, {
+    return apiFetch(`${API_BASE}/tasks`, {
       method: 'POST',
       headers: buildHeaders(),
       body: JSON.stringify(task),
-    }).then(handleResponse);
+    });
   },
 
   updateTask(id, task) {
-    return fetch(`${API_BASE}/tasks/${id}`, {
+    return apiFetch(`${API_BASE}/tasks/${id}`, {
       method: 'PUT',
       headers: buildHeaders(),
       body: JSON.stringify(task),
-    }).then(handleResponse);
+    });
   },
 
   deleteTask(id) {
-    return fetch(`${API_BASE}/tasks/${id}`, {
+    return apiFetch(`${API_BASE}/tasks/${id}`, {
       method: 'DELETE',
       headers: buildHeaders(),
-    }).then(handleResponse);
+    });
   },
 
   getComments(taskId) {
-    return fetch(`${API_BASE}/comments/${taskId}`, {
-      headers: buildHeaders(),
-    }).then(handleResponse);
+    return apiFetch(`${API_BASE}/comments/${taskId}`, { headers: buildHeaders() });
   },
 
   addComment(comment) {
-    return fetch(`${API_BASE}/comments`, {
+    return apiFetch(`${API_BASE}/comments`, {
       method: 'POST',
       headers: buildHeaders(),
       body: JSON.stringify(comment),
-    }).then(handleResponse);
+    });
   },
 
   deleteComment(id) {
-    return fetch(`${API_BASE}/comments/${id}`, {
+    return apiFetch(`${API_BASE}/comments/${id}`, {
       method: 'DELETE',
       headers: buildHeaders(),
-    }).then(handleResponse);
+    });
   },
 
   getProjects() {
-    return fetch(`${API_BASE}/projects`, {
-      headers: buildHeaders(),
-    }).then(handleResponse);
+    return apiFetch(`${API_BASE}/projects`, { headers: buildHeaders() });
   },
 
   getProject(id) {
-    return fetch(`${API_BASE}/projects/${id}`, {
-      headers: buildHeaders(),
-    }).then(handleResponse);
+    return apiFetch(`${API_BASE}/projects/${id}`, { headers: buildHeaders() });
   },
 
   createProject(project) {
-    return fetch(`${API_BASE}/projects`, {
+    return apiFetch(`${API_BASE}/projects`, {
       method: 'POST',
       headers: buildHeaders(),
       body: JSON.stringify(project),
-    }).then(handleResponse);
+    });
   },
 
   getTeamMembers() {
-    return fetch(`${API_BASE}/users/team`, {
-      headers: buildHeaders(),
-    }).then(handleResponse);
+    return apiFetch(`${API_BASE}/users/team`, { headers: buildHeaders() });
   },
 
   getProfile() {
-    return fetch(`${API_BASE}/users/me`, {
-      headers: buildHeaders(),
-    }).then(handleResponse);
+    return apiFetch(`${API_BASE}/users/me`, { headers: buildHeaders() });
   },
 
   changePassword(currentPassword, newPassword) {
-    return fetch(`${API_BASE}/users/me/password`, {
+    return apiFetch(`${API_BASE}/users/me/password`, {
       method: 'PATCH',
       headers: buildHeaders(),
       body: JSON.stringify({ currentPassword, newPassword }),
-    }).then(handleResponse);
+    });
   },
 
   getUsers() {
-    return fetch(`${API_BASE}/users`, {
+    return apiFetch(`${API_BASE}/users`, {
       headers: buildHeaders(),
       cache: 'no-store',
-    }).then(handleResponse);
+    });
   },
 
   createUser(user) {
-    return fetch(`${API_BASE}/users`, {
+    return apiFetch(`${API_BASE}/users`, {
       method: 'POST',
       headers: buildHeaders(),
       body: JSON.stringify(user),
-    }).then(handleResponse);
+    });
   },
 
   updateUser(id, user) {
-    return fetch(`${API_BASE}/users/${id}`, {
+    return apiFetch(`${API_BASE}/users/${id}`, {
       method: 'PUT',
       headers: buildHeaders(),
       body: JSON.stringify(user),
-    }).then(handleResponse);
+    });
   },
 
   deactivateUser(id) {
-    return fetch(`${API_BASE}/users/${id}/deactivate`, {
+    return apiFetch(`${API_BASE}/users/${id}/deactivate`, {
       method: 'PATCH',
       headers: buildHeaders(),
-    }).then(handleResponse);
+    });
   },
 
   deleteUser(id) {
-    return fetch(`${API_BASE}/users/${id}`, {
+    return apiFetch(`${API_BASE}/users/${id}`, {
       method: 'DELETE',
       headers: buildHeaders(),
       cache: 'no-store',
-    }).then(handleResponse);
+    });
   },
 
   activateUser(id) {
-    return fetch(`${API_BASE}/users/${id}/activate`, {
+    return apiFetch(`${API_BASE}/users/${id}/activate`, {
       method: 'PATCH',
       headers: buildHeaders(),
-    }).then(handleResponse);
+    });
   },
 
   getNotifications() {
-    return fetch(`${API_BASE}/notifications`, {
-      headers: buildHeaders(),
-    }).then(handleResponse);
+    return apiFetch(`${API_BASE}/notifications`, { headers: buildHeaders() });
   },
 
   getUnreadCount() {
-    return fetch(`${API_BASE}/notifications/unread-count`, {
-      headers: buildHeaders(),
-    }).then(handleResponse);
+    return apiFetch(`${API_BASE}/notifications/unread-count`, { headers: buildHeaders() });
   },
 
   markNotificationRead(id) {
-    return fetch(`${API_BASE}/notifications/${id}/read`, {
+    return apiFetch(`${API_BASE}/notifications/${id}/read`, {
       method: 'PATCH',
       headers: buildHeaders(),
-    }).then(handleResponse);
+    });
   },
 
   markAllNotificationsRead() {
-    return fetch(`${API_BASE}/notifications/read-all`, {
+    return apiFetch(`${API_BASE}/notifications/read-all`, {
       method: 'PATCH',
       headers: buildHeaders(),
-    }).then(handleResponse);
+    });
   },
 
   getAttachments(taskId) {
-    return fetch(`${API_BASE}/attachments/${taskId}`, {
-      headers: buildHeaders(),
-    }).then(handleResponse);
+    return apiFetch(`${API_BASE}/attachments/${taskId}`, { headers: buildHeaders() });
   },
 
   uploadAttachment(taskId, file) {
@@ -287,11 +325,11 @@ export const api = {
       headers.Authorization = `Bearer ${auth.token}`;
     }
 
-    return fetch(`${API_BASE}/attachments/upload`, {
-      method: 'POST',
-      headers,
-      body: formData,
-    }).then(handleResponse);
+    return fetchWithTimeout(
+      `${API_BASE}/attachments/upload`,
+      { method: 'POST', headers, body: formData },
+      COLD_START_TIMEOUT_MS
+    ).then(handleResponse);
   },
 
   async downloadAttachment(id, fileName) {
@@ -301,7 +339,11 @@ export const api = {
       headers.Authorization = `Bearer ${auth.token}`;
     }
 
-    const response = await fetch(`${API_BASE}/attachments/download/${id}`, { headers });
+    const response = await fetchWithTimeout(
+      `${API_BASE}/attachments/download/${id}`,
+      { headers },
+      COLD_START_TIMEOUT_MS
+    );
 
     if (response.status === 401) {
       clearStoredAuth();
@@ -327,10 +369,10 @@ export const api = {
   },
 
   deleteAttachment(id) {
-    return fetch(`${API_BASE}/attachments/${id}`, {
+    return apiFetch(`${API_BASE}/attachments/${id}`, {
       method: 'DELETE',
       headers: buildHeaders(),
-    }).then(handleResponse);
+    });
   },
 };
 

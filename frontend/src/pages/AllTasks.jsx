@@ -6,6 +6,8 @@ import KanbanBoard from '../components/KanbanBoard';
 import TaskTableView from '../components/TaskTableView';
 import TaskFilterBar from '../components/TaskFilterBar';
 import TaskModal from '../components/TaskModal';
+import ErrorRetry from '../components/ErrorRetry';
+import LoadingState from '../components/LoadingState';
 import { useTaskFilters } from '../hooks/useTaskFilters';
 
 export default function AllTasks() {
@@ -136,7 +138,7 @@ export default function AllTasks() {
         </div>
       </header>
 
-      {error && <div className="alert alert--error">{error}</div>}
+      {error && <ErrorRetry message={error} onRetry={() => loadData()} />}
 
       <div className="filter-bar">
         <div className="view-toggle">
@@ -160,14 +162,17 @@ export default function AllTasks() {
       </div>
 
       {loading ? (
-        <div className="skeleton-board">
-          {[1, 2, 3].map((col) => (
-            <div key={col} className="skeleton-column">
-              <div className="skeleton skeleton--title" />
-              <div className="skeleton skeleton--card" />
-            </div>
-          ))}
-        </div>
+        <>
+          <div className="skeleton-board">
+            {[1, 2, 3].map((col) => (
+              <div key={col} className="skeleton-column">
+                <div className="skeleton skeleton--title" />
+                <div className="skeleton skeleton--card" />
+              </div>
+            ))}
+          </div>
+          <LoadingState label="Loading tasks…" />
+        </>
       ) : displayedTasks.length === 0 && !error ? (
         filters.activeCount > 0 ? (
           <div className="empty-state">

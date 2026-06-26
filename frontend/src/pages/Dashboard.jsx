@@ -9,6 +9,8 @@ import UpcomingTasks from '../components/UpcomingTasks';
 import TeamWorkload from '../components/TeamWorkload';
 import RecentProjects from '../components/RecentProjects';
 import TaskModal from '../components/TaskModal';
+import ErrorRetry from '../components/ErrorRetry';
+import LoadingState from '../components/LoadingState';
 import { FolderSolidIcon, ActiveSolidIcon, CheckCircleSolidIcon, ClipboardSolidIcon } from '../components/Icons';
 
 export default function Dashboard() {
@@ -91,7 +93,7 @@ export default function Dashboard() {
         </div>
       </header>
 
-      {error && <div className="alert alert--error">{error}</div>}
+      {error && <ErrorRetry message={error} onRetry={() => loadData()} />}
 
       {!loading && !error && (
         <>
@@ -123,14 +125,17 @@ export default function Dashboard() {
       )}
 
       {loading && (
-        <div className="skeleton-board">
-          {[1, 2, 3].map((col) => (
-            <div key={col} className="skeleton-column">
-              <div className="skeleton skeleton--title" />
-              <div className="skeleton skeleton--card" />
-            </div>
-          ))}
-        </div>
+        <>
+          <div className="skeleton-board">
+            {[1, 2, 3].map((col) => (
+              <div key={col} className="skeleton-column">
+                <div className="skeleton skeleton--title" />
+                <div className="skeleton skeleton--card" />
+              </div>
+            ))}
+          </div>
+          <LoadingState label="Loading dashboard…" />
+        </>
       )}
 
       {selectedTask && (

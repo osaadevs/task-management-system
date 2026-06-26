@@ -4,6 +4,7 @@ import { api } from '../api';
 import { useAuth, useRole } from '../context/AuthContext';
 import ProjectCard from '../components/ProjectCard';
 import ProjectModal from '../components/ProjectModal';
+import ErrorRetry from '../components/ErrorRetry';
 import { FolderIcon } from '../components/Icons';
 
 export default function Projects() {
@@ -78,7 +79,7 @@ export default function Projects() {
         </div>
       </header>
 
-      {error && <div className="alert alert--error">{error}</div>}
+      {error && <ErrorRetry message={error} onRetry={loadProjects} />}
 
       {loading ? (
         <div className="projects-grid">

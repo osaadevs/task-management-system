@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { api } from '../api';
 import { TrashIcon } from '../components/Icons';
+import LoadingState from '../components/LoadingState';
+import ErrorRetry from '../components/ErrorRetry';
 import { useAuth, useRole } from '../context/AuthContext';
 import { scrollToElement } from '../utils/scrollToElement';
 import { fieldErrorMap } from '../utils/formErrors';
@@ -318,7 +320,9 @@ export default function AdminUsers() {
 
       <section className="panel panel--flush">
         {loading ? (
-          <p className="muted panel__padding">Loading members…</p>
+          <LoadingState label="Loading members…" />
+        ) : error && users.length === 0 ? (
+          <ErrorRetry message={error} onRetry={loadUsers} />
         ) : (
           <div className="table-wrap admin-table">
             <table className="data-table">

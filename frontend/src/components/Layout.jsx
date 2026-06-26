@@ -1,11 +1,12 @@
 import { Outlet, useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
 import Sidebar from './Sidebar';
 import AppTopBar from './AppTopBar';
 import AssignmentAlert from './AssignmentAlert';
 import { useSocket } from '../hooks/useSocket';
 import { useAuth } from '../context/AuthContext';
 import { canOpenTask, getTaskPath } from '../utils/notificationNavigation';
-import { api } from '../api';
+import { api, startApiKeepAlive } from '../api';
 
 export default function Layout() {
   const { token, user } = useAuth();
@@ -15,6 +16,11 @@ export default function Layout() {
     token,
     user?.id // FE-1: lets the socket hook drop notifications addressed to someone else
   );
+
+  useEffect(() => {
+    if (!token) return undefined;
+    return startApiKeepAlive();
+  }, [token]);
 
   const openLiveNotification = async (item) => {
     if (canOpenTask(item)) {

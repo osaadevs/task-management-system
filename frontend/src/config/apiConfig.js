@@ -3,12 +3,19 @@ const PRODUCTION_SOCKET = 'https://task-management-system-backend-z9y4.onrender.
 
 export function getApiBase() {
   const configured = import.meta.env.VITE_API_BASE?.trim();
+
+  // Production: call Render directly (faster than proxying /api through Vercel).
+  if (import.meta.env.PROD) {
+    if (configured?.startsWith('http')) {
+      return configured.replace(/\/$/, '');
+    }
+    return PRODUCTION_API;
+  }
+
   if (configured) {
     return configured.replace(/\/$/, '');
   }
-  if (import.meta.env.PROD) {
-    return PRODUCTION_API;
-  }
+
   return 'http://localhost:5000/api';
 }
 

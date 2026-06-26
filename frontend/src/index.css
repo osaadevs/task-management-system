@@ -3460,6 +3460,20 @@ tr:last-child td {
   background: var(--surface-muted);
 }
 
+.loading-state__label {
+  margin: 0;
+}
+
+.loading-state__hint {
+  margin: 8px 0 0;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.error-retry .alert {
+  margin-bottom: 10px;
+}
+
 .table-assignee {
   display: inline-flex;
   align-items: center;
