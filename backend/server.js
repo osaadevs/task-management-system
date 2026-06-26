@@ -53,20 +53,29 @@ app.use(
   })
 );
 
-app.use(
+app.use((req, res, next) => {
   cors({
     origin(origin, callback) {
       if (!origin) return callback(null, true);
       if (allowedOrigins.includes(origin)) return callback(null, true);
+
+      // Swagger UI on /api-docs sends Origin matching this API host.
+      const host = req.get('host');
+      if (host && (origin === `http://${host}` || origin === `https://${host}`)) {
+        return callback(null, true);
+      }
+
       // BE-17: only allow ad-hoc localhost origins outside production.
       if (process.env.NODE_ENV !== 'production' && /^http:\/\/localhost:\d+$/.test(origin)) {
         return callback(null, true);
       }
-      return callback(new Error(`CORS blocked for origin: ${origin}`));
+
+      console.warn(`CORS blocked for origin: ${origin}`);
+      return callback(null, false);
     },
     credentials: true,
-  })
-);
+  })(req, res, next);
+});
 app.use(express.json());
 
 // BE-2: global rate limit on all routes (login gets a stricter limiter in authRoutes).
