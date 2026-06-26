@@ -82,8 +82,8 @@ const TaskModel = {
 
   createTask: (taskData, callback) => {
     const sql = `INSERT INTO tasks
-                 (title, description, project_id, due_date, priority, status, created_by)
-                 VALUES (?, ?, ?, ?, ?, ?, ?)
+                 (title, description, project_id, due_date, priority, status, created_by, updated_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
                  RETURNING id`;
     const values = [
       taskData.title,
