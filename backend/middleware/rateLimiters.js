@@ -32,4 +32,16 @@ const loginLimiter = rateLimit({
   },
 });
 
-module.exports = { globalLimiter, loginLimiter };
+const forgotPasswordLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  validate: { trustProxy: false, xForwardedForHeader: false },
+  message: {
+    errorCode: 'RATE_LIMITED',
+    message: 'Too many password reset requests. Please try again in about 15 minutes.',
+  },
+});
+
+module.exports = { globalLimiter, loginLimiter, forgotPasswordLimiter };

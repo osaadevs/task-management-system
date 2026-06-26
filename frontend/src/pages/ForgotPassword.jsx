@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api';
 import AuthBackground from '../components/AuthBackground';
 import ThemeToggle from '../components/ThemeToggle';
 import { MailIcon, UserIcon } from '../components/Icons';
+
+const RESEND_COOLDOWN_SEC = 60;
 
 export default function ForgotPassword() {
   const [identifier, setIdentifier] = useState('');
@@ -11,22 +13,51 @@ export default function ForgotPassword() {
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
+  useEffect(() => {
+    if (resendCooldown <= 0) return undefined;
+
+    const timer = setInterval(() => {
+      setResendCooldown((prev) => (prev <= 1 ? 0 : prev - 1));
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
+
+  const requestReset = async (isResend = false) => {
     setError('');
-    setMessage('');
+    if (!isResend) setMessage('');
     setLoading(true);
 
     try {
       const response = await api.forgotPassword(identifier.trim());
-      setMessage(response.message);
+      setMessage(
+        isResend
+          ? 'Another temporary password email has been sent. Check your inbox and spam folder.'
+          : response.message
+      );
       setSent(true);
+      setResendCooldown(RESEND_COOLDOWN_SEC);
     } catch (err) {
-      setError(err.message);
+      const text =
+        err.rateLimited || err.status === 429
+          ? 'Too many attempts. Please wait a few minutes before trying again.'
+          : err.message;
+      setError(text);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    await requestReset(false);
+  };
+
+  const handleResend = async () => {
+    if (resendCooldown > 0 || loading || !identifier.trim()) return;
+    await requestReset(true);
   };
 
   return (
@@ -53,6 +84,7 @@ export default function ForgotPassword() {
         {sent ? (
           <div className="forgot-password-success">
             {message && <div className="alert alert--success">{message}</div>}
+            {error && <div className="alert alert--error">{error}</div>}
             <ol className="forgot-password-steps">
               <li>Check the inbox for the email saved on your Taskora account (and spam/junk).</li>
               <li>
@@ -64,12 +96,31 @@ export default function ForgotPassword() {
               <li>You&apos;ll be asked to choose a new password right away.</li>
             </ol>
             <p className="auth-hint auth-hint--box">
-              No email? Check spam/junk. If you saw a red error above, Resend may not be configured on Render yet.
-              Gmail addresses need the domain <strong>vendra.best</strong> verified in Resend.
+              Didn&apos;t get it? You can resend another email with a new temporary password.
+              {identifier.trim() && (
+                <>
+                  {' '}
+                  Using: <strong>{identifier.trim()}</strong>
+                </>
+              )}
             </p>
-            <Link to="/login" className="btn btn--primary btn--full">
-              Back to sign in
-            </Link>
+            <div className="forgot-password-actions">
+              <button
+                type="button"
+                className="btn btn--ghost btn--full"
+                onClick={handleResend}
+                disabled={loading || resendCooldown > 0}
+              >
+                {loading
+                  ? 'Sending…'
+                  : resendCooldown > 0
+                    ? `Resend email (${resendCooldown}s)`
+                    : 'Resend email'}
+              </button>
+              <Link to="/login" className="btn btn--primary btn--full">
+                Back to sign in
+              </Link>
+            </div>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="auth-form auth-form--stacked">

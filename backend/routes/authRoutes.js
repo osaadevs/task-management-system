@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authController');
 const { verifyToken } = require('../middleware/authMiddleware');
-const { loginLimiter } = require('../middleware/rateLimiters');
+const { loginLimiter, forgotPasswordLimiter } = require('../middleware/rateLimiters');
 
 /**
  * @swagger
@@ -37,7 +37,7 @@ router.post('/login', loginLimiter, authController.login);
  *     summary: Request a temporary password by email or name
  *     tags: [Auth]
  */
-router.post('/forgot-password', authController.forgotPassword);
+router.post('/forgot-password', forgotPasswordLimiter, authController.forgotPassword);
 
 /**
  * @swagger

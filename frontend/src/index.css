@@ -1125,6 +1125,11 @@ h3,
   margin-top: 8px;
 }
 
+.forgot-password-actions {
+  display: grid;
+  gap: 10px;
+}
+
 /* ─── Form fields ─── */
 
 label {
