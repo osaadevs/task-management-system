@@ -70,7 +70,7 @@ const ProjectController = {
   },
 
   createProject: (req, res) => {
-    const { project_name, description } = req.body;
+    const { project_name, description } = req.body || {};
 
     if (!project_name || !String(project_name).trim()) {
       return validationError(res, [{ field: 'project_name', message: 'Project name is required' }]);
