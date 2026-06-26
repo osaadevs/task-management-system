@@ -111,6 +111,17 @@ exports.forgotPassword = async (req, res) => {
     }
 
     const user = rows[0];
+
+    // BE-1: a public, unauthenticated reset must never resurrect an account an
+    // admin has deactivated. Skip silently (same generic response as "no match")
+    // so the endpoint still doesn't reveal whether the account exists.
+    if (!user.is_active) {
+      return res.json({
+        success: true,
+        message: FORGOT_PASSWORD_SUCCESS_MESSAGE,
+      });
+    }
+
     const temporaryPassword = generateTempPassword();
 
     try {
@@ -125,7 +136,7 @@ exports.forgotPassword = async (req, res) => {
 
     const hashed = await bcrypt.hash(temporaryPassword, 10);
     await db.promise().query(
-      'UPDATE users SET password_hash = ?, is_first_login = TRUE, is_active = TRUE WHERE id = ?',
+      'UPDATE users SET password_hash = ?, is_first_login = TRUE WHERE id = ?',
       [hashed, user.id]
     );
 
