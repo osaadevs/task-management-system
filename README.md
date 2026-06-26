@@ -12,6 +12,8 @@ A full-stack task management app (**Taskora**) built for INTE 21323 Group Assign
 
 > Frontend is also reachable at the Vercel default domain: https://task-management-system-pi-five.vercel.app
 
+> **Design docs:** ER, Class, Database, and Deployment diagrams are in [`docs/diagrams.md`](docs/diagrams.md).
+
 ---
 
 ## Features
@@ -58,8 +60,8 @@ A full-stack task management app (**Taskora**) built for INTE 21323 Group Assign
 ### Option 1 — Run with Docker (Recommended)
 
 ```bash
-git clone https://github.com/jayathilakasewmini440-beep/[repo-name].git
-cd [repo-name]
+git clone https://github.com/jayathilakasewmini440-beep/task-management-system.git
+cd task-management-system
 docker compose up --build
 ```
 
