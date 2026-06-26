@@ -44,6 +44,20 @@ async function main() {
     skipDuplicates: true,
   });
 
+  // Fixed IDs in seed leave Postgres sequences behind — reset so new inserts work.
+  await prisma.$executeRawUnsafe(
+    `SELECT setval(pg_get_serial_sequence('roles', 'id'), COALESCE((SELECT MAX(id) FROM roles), 1))`
+  );
+  await prisma.$executeRawUnsafe(
+    `SELECT setval(pg_get_serial_sequence('users', 'id'), COALESCE((SELECT MAX(id) FROM users), 1))`
+  );
+  await prisma.$executeRawUnsafe(
+    `SELECT setval(pg_get_serial_sequence('projects', 'id'), COALESCE((SELECT MAX(id) FROM projects), 1))`
+  );
+  await prisma.$executeRawUnsafe(
+    `SELECT setval(pg_get_serial_sequence('tasks', 'id'), COALESCE((SELECT MAX(id) FROM tasks), 1))`
+  );
+
   console.log('Seed complete. Login: sarah.j@tms.com / Password@123');
 }
 

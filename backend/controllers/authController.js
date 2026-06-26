@@ -13,8 +13,9 @@ const DB_UNAVAILABLE =
 
 exports.login = async (req, res) => {
   try {
-    const email = String(req.body.email || '').trim().toLowerCase();
-    const password = req.body.password;
+    const body = req.body || {};
+    const email = String(body.email || '').trim().toLowerCase();
+    const password = body.password;
 
     if (!email || !password) {
       const errors = [];
@@ -84,7 +85,8 @@ exports.login = async (req, res) => {
 
 exports.forgotPassword = async (req, res) => {
   try {
-    const identifier = String(req.body.email || req.body.username || '').trim();
+    const body = req.body || {};
+    const identifier = String(body.email || body.username || '').trim();
 
     if (!identifier) {
       return validationError(res, [{ field: 'email', message: 'Work email or name is required' }]);
@@ -153,7 +155,7 @@ exports.forgotPassword = async (req, res) => {
 
 exports.resetPassword = async (req, res) => {
   try {
-    const { newPassword } = req.body;
+    const { newPassword } = req.body || {};
     const userId = req.user.id;
 
     if (!newPassword || !PASSWORD_REGEX.test(newPassword)) {
