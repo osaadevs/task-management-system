@@ -4,14 +4,21 @@ import { api } from '../api';
 import { useAuth } from '../context/AuthContext';
 import AuthBackground from '../components/AuthBackground';
 import ThemeToggle from '../components/ThemeToggle';
+import { passwordError as getPasswordError, PASSWORD_REGEX } from '../utils/passwordPolicy';
 
 export default function ResetPassword() {
-  const { mustResetPassword, clearMustReset } = useAuth();
+  const { isAuthenticated, mustResetPassword, clearMustReset } = useAuth();
   const navigate = useNavigate();
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // FE-3: this route requires an authenticated (reset-pending) session — send
+  // unauthenticated visitors to login rather than rendering the form.
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
 
   if (!mustResetPassword) {
     return <Navigate to="/" replace />;
@@ -21,8 +28,8 @@ export default function ResetPassword() {
     event.preventDefault();
     setError('');
 
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters.');
+    if (!PASSWORD_REGEX.test(password)) {
+      setError('Use 8+ characters with upper, lower, a number, and a symbol.');
       return;
     }
 
@@ -44,8 +51,7 @@ export default function ResetPassword() {
     }
   };
 
-  const passwordError =
-    password.length > 0 && password.length < 8 ? 'Must be at least 8 characters.' : '';
+  const passwordError = getPasswordError(password); // FE-7: mirror full complexity policy
   const confirmError =
     confirm.length > 0 && confirm !== password ? 'Passwords do not match.' : '';
 

@@ -3,6 +3,7 @@ import { Navigate } from 'react-router-dom';
 import { api } from '../api';
 import { useRole } from '../context/AuthContext';
 import { scrollToElement } from '../utils/scrollToElement';
+import { fieldErrorMap } from '../utils/formErrors';
 
 const ROLES = ['Admin', 'Project Manager', 'Collaborator'];
 const ROLE_FILTERS = ['All Members', 'Admins', 'PMs', 'Collaborators'];
@@ -40,6 +41,7 @@ export default function AdminUsers() {
   const [roleFilter, setRoleFilter] = useState('All Members');
   const [showInvite, setShowInvite] = useState(false);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const formPanelRef = useRef(null);
@@ -110,6 +112,7 @@ export default function AdminUsers() {
     event.preventDefault();
     setError('');
     setMessage('');
+    setFieldErrors({});
 
     try {
       if (editId) {
@@ -123,6 +126,7 @@ export default function AdminUsers() {
       await loadUsers();
     } catch (err) {
       setError(err.message);
+      setFieldErrors(fieldErrorMap(err)); // FE-5 (e.g. duplicate email -> email field)
     }
   };
 
@@ -227,7 +231,12 @@ export default function AdminUsers() {
                 value={form.name}
                 onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
                 required
+                maxLength={150}
+                aria-invalid={Boolean(fieldErrors.full_name)}
               />
+              {fieldErrors.full_name && (
+                <span className="field-error">{fieldErrors.full_name}</span>
+              )}
             </label>
             <label>
               Email
@@ -237,11 +246,11 @@ export default function AdminUsers() {
                 onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
                 required
                 disabled={Boolean(editId)}
-                aria-invalid={Boolean(emailError)}
-                aria-describedby={emailError ? 'invite-email-error' : undefined}
+                aria-invalid={Boolean(emailError || fieldErrors.email)}
+                aria-describedby={emailError || fieldErrors.email ? 'invite-email-error' : undefined}
               />
-              {emailError && (
-                <span className="field-error" id="invite-email-error">{emailError}</span>
+              {(emailError || fieldErrors.email) && (
+                <span className="field-error" id="invite-email-error">{emailError || fieldErrors.email}</span>
               )}
             </label>
             <label>
@@ -249,6 +258,7 @@ export default function AdminUsers() {
               <select
                 value={form.role}
                 onChange={(e) => setForm((prev) => ({ ...prev, role: e.target.value }))}
+                aria-invalid={Boolean(fieldErrors.role)}
               >
                 {ROLES.map((role) => (
                   <option key={role} value={role}>
@@ -256,6 +266,7 @@ export default function AdminUsers() {
                   </option>
                 ))}
               </select>
+              {fieldErrors.role && <span className="field-error">{fieldErrors.role}</span>}
             </label>
           </div>
           <div className="form-actions-inline">

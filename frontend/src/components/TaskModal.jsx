@@ -4,6 +4,7 @@ import { useRole } from '../context/AuthContext';
 import CommentSection from './CommentSection';
 import AssigneePicker from './AssigneePicker';
 import TaskAttachments from './TaskAttachments';
+import { fieldErrorMap } from '../utils/formErrors';
 
 const STATUSES = ['To Do', 'In Progress', 'Completed'];
 const PRIORITIES = ['Low', 'Medium', 'High'];
@@ -34,6 +35,7 @@ export default function TaskModal({
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
   const [pendingFiles, setPendingFiles] = useState([]);
   const titleInputRef = useRef(null);
   const modalRef = useRef(null);
@@ -131,6 +133,7 @@ export default function TaskModal({
     event.preventDefault();
     setLoading(true);
     setError('');
+    setFieldErrors({});
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -165,6 +168,7 @@ export default function TaskModal({
       onClose();
     } catch (err) {
       setError(err.message);
+      setFieldErrors(fieldErrorMap(err)); // FE-5
     } finally {
       setLoading(false);
     }
@@ -223,7 +227,13 @@ export default function TaskModal({
               onChange={(e) => updateField('title', e.target.value)}
               required
               disabled={readOnly}
+              maxLength={200}
+              aria-invalid={Boolean(fieldErrors.title)}
+              aria-describedby={fieldErrors.title ? 'task-title-error' : undefined}
             />
+            {fieldErrors.title && (
+              <span className="field-error" id="task-title-error">{fieldErrors.title}</span>
+            )}
           </label>
 
           <label>
@@ -233,6 +243,7 @@ export default function TaskModal({
               value={form.description}
               onChange={(e) => updateField('description', e.target.value)}
               disabled={readOnly}
+              maxLength={5000}
             />
           </label>
 
@@ -315,11 +326,16 @@ export default function TaskModal({
           </div>
 
           {canManageTasks && (
-            <AssigneePicker
-              users={users}
-              selectedIds={form.assignee_ids}
-              onToggle={toggleAssignee}
-            />
+            <>
+              <AssigneePicker
+                users={users}
+                selectedIds={form.assignee_ids}
+                onToggle={toggleAssignee}
+              />
+              {fieldErrors.assignee_ids && (
+                <span className="field-error">{fieldErrors.assignee_ids}</span>
+              )}
+            </>
           )}
 
           <TaskAttachments

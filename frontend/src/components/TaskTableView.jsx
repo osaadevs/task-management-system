@@ -12,18 +12,47 @@ const STATUS_CLASS = {
   Completed: 'status-done',
 };
 
-export default function TaskTableView({ tasks, onOpenTask, onStatusChange, canManageTasks, showProject = false }) {
+export default function TaskTableView({
+  tasks,
+  onOpenTask,
+  onStatusChange,
+  canManageTasks,
+  showProject = false,
+  sortBy = null,
+  sortOrder = 'asc',
+  onSort = null,
+}) {
+  // FE-4: clickable column headers wired to the server sort params.
+  const sortable = typeof onSort === 'function';
+  const indicator = (field) => (sortBy === field ? (sortOrder === 'asc' ? ' ▲' : ' ▼') : '');
+  const headerProps = (field) =>
+    sortable
+      ? {
+          className: 'data-table__sortable',
+          onClick: () => onSort(field),
+          role: 'button',
+          tabIndex: 0,
+          onKeyDown: (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              onSort(field);
+            }
+          },
+          'aria-sort': sortBy === field ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none',
+        }
+      : {};
+
   return (
     <div className="table-wrap task-table panel panel--flush">
       <table className="data-table">
         <thead>
           <tr>
-            <th>Task</th>
+            <th {...headerProps('title')}>Task{indicator('title')}</th>
             {showProject && <th>Project</th>}
             <th>Assignees</th>
-            <th>Priority</th>
-            <th>Status</th>
-            <th>Due date</th>
+            <th {...headerProps('priority')}>Priority{indicator('priority')}</th>
+            <th {...headerProps('status')}>Status{indicator('status')}</th>
+            <th {...headerProps('due_date')}>Due date{indicator('due_date')}</th>
           </tr>
         </thead>
         <tbody>

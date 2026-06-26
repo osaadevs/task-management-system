@@ -6,7 +6,7 @@ function resolveSocketUrl() {
   return getSocketUrl();
 }
 
-export function useSocket(enabled = true, token = null) {
+export function useSocket(enabled = true, token = null, currentUserId = null) {
   const [connected, setConnected] = useState(false);
   const [liveNotifications, setLiveNotifications] = useState([]);
 
@@ -38,6 +38,16 @@ export function useSocket(enabled = true, token = null) {
     });
 
     socket.on('notification', (payload) => {
+      // FE-1: defense-in-depth — drop any notification not addressed to this user.
+      if (
+        currentUserId != null &&
+        payload &&
+        payload.recipientId != null &&
+        Number(payload.recipientId) !== Number(currentUserId)
+      ) {
+        return;
+      }
+
       const item = {
         ...payload,
         id: payload.id || `${Date.now()}-${Math.random()}`,
@@ -50,11 +60,18 @@ export function useSocket(enabled = true, token = null) {
       window.dispatchEvent(new CustomEvent('tms:tasks-changed'));
     });
 
+    // FE-10: on reconnect, re-pull so events missed while offline are caught up.
+    // 'tms:tasks-changed' is consumed by both the task lists and the notification panel.
+    socket.io.on('reconnect', () => {
+      window.dispatchEvent(new CustomEvent('tms:tasks-changed'));
+    });
+
     return () => {
+      socket.io.off('reconnect');
       socket.disconnect();
       setConnected(false);
     };
-  }, [enabled, token]);
+  }, [enabled, token, currentUserId]);
 
   return { connected, liveNotifications, dismissLiveNotification };
 }

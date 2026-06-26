@@ -8,9 +8,13 @@ import { canOpenTask, getTaskPath } from '../utils/notificationNavigation';
 import { api } from '../api';
 
 export default function Layout() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const navigate = useNavigate();
-  const { connected, liveNotifications, dismissLiveNotification } = useSocket(Boolean(token), token);
+  const { connected, liveNotifications, dismissLiveNotification } = useSocket(
+    Boolean(token),
+    token,
+    user?.id // FE-1: lets the socket hook drop notifications addressed to someone else
+  );
 
   const openLiveNotification = async (item) => {
     if (canOpenTask(item)) {

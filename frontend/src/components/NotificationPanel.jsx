@@ -39,7 +39,9 @@ export default function NotificationPanel() {
     const onTasksChanged = () => loadNotifications();
     window.addEventListener('tms:notification', onNotification);
     window.addEventListener('tms:tasks-changed', onTasksChanged);
-    const interval = setInterval(loadNotifications, 15000);
+    // FE-8: the socket is the primary update path (tms:notification / tms:tasks-changed,
+    // plus a reconnect re-fetch). This long interval is just a safety-net fallback.
+    const interval = setInterval(loadNotifications, 60000);
     return () => {
       window.removeEventListener('tms:notification', onNotification);
       window.removeEventListener('tms:tasks-changed', onTasksChanged);

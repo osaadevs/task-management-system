@@ -26,7 +26,11 @@ export default function CommentSection({ taskId }) {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    if (!content.trim()) return;
+    if (!content.trim()) {
+      setError('Comment cannot be empty.'); // FE-9: give feedback instead of a silent no-op
+      return;
+    }
+    setError('');
 
     try {
       await api.addComment({
@@ -86,8 +90,10 @@ export default function CommentSection({ taskId }) {
           placeholder="Add a comment…"
           value={content}
           onChange={(e) => setContent(e.target.value)}
+          maxLength={2000}
+          aria-label="Add a comment"
         />
-        <button type="submit" className="btn btn--primary btn--small">
+        <button type="submit" className="btn btn--primary btn--small" disabled={!content.trim()}>
           Post Comment
         </button>
       </form>

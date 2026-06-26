@@ -16,6 +16,12 @@ function buildHeaders() {
   return headers;
 }
 
+function defaultMessageFor(status) {
+  if (status === 403) return 'You do not have permission to perform this action.';
+  if (status === 429) return 'Too many requests. Please slow down and try again shortly.';
+  return 'Request failed';
+}
+
 async function handleResponse(response) {
   const data = await response.json().catch(() => ({}));
 
@@ -31,8 +37,16 @@ async function handleResponse(response) {
 
   if (!response.ok) {
     const message =
-      data.message || data.error || data.description || 'Request failed';
-    throw new Error(message);
+      data.message || data.error || data.description || defaultMessageFor(response.status);
+    // FE-5/FE-6: throw a rich error so callers can map field errors to inputs and
+    // branch on 403/429 instead of seeing one flattened string.
+    const error = new Error(message);
+    error.status = response.status;
+    error.code = data.errorCode || null;
+    error.fieldErrors = Array.isArray(data.errors) ? data.errors : null; // FE-5
+    error.forbidden = response.status === 403; // FE-6
+    error.rateLimited = response.status === 429; // 429 branch
+    throw error;
   }
 
   return data;

@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import PasswordField from '../components/PasswordField';
 import { MailIcon, UserIcon } from '../components/Icons';
 import { scrollToElement } from '../utils/scrollToElement';
+import { passwordError as getPasswordError } from '../utils/passwordPolicy';
 
 const TABS = [
   { id: 'profile', label: 'Profile' },
@@ -88,10 +89,7 @@ export default function Account() {
     return <Navigate to="/reset-password" replace />;
   }
 
-  const newPasswordError =
-    newPassword.length > 0 && !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/.test(newPassword)
-      ? 'Use 8+ characters with upper, lower, and a number.'
-      : '';
+  const newPasswordError = getPasswordError(newPassword);
 
   const confirmError =
     confirmPassword.length > 0 && confirmPassword !== newPassword

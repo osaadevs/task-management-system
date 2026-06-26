@@ -6,6 +6,7 @@ import AuthBackground from '../components/AuthBackground';
 import ThemeToggle from '../components/ThemeToggle';
 import { EyeIcon, EyeOffIcon, MailIcon, InfoIcon } from '../components/Icons';
 import { clearStoredAuth, getRememberedAuth, getValidStoredAuth, restoreRememberedAuth } from '../utils/authStorage';
+import { fieldErrorMap } from '../utils/formErrors';
 
 export default function Login() {
   const { login } = useAuth();
@@ -15,6 +16,7 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(false);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const rememberedAuth = getRememberedAuth();
 
@@ -29,6 +31,7 @@ export default function Login() {
     event.preventDefault();
     setLoading(true);
     setError('');
+    setFieldErrors({});
 
     try {
       const response = await api.login(email.trim(), password);
@@ -49,6 +52,7 @@ export default function Login() {
           ? 'Invalid email or password. If you used Forgot password recently, sign in with the temporary password from your email.'
           : err.message;
       setError(message);
+      setFieldErrors(fieldErrorMap(err)); // FE-5
     } finally {
       setLoading(false);
     }
@@ -112,11 +116,13 @@ export default function Login() {
                 placeholder="name@company.com"
                 autoComplete="username"
                 required
+                aria-invalid={Boolean(fieldErrors.email)}
               />
               <span className="field__icon" aria-hidden="true">
                 <MailIcon size={16} />
               </span>
             </div>
+            {fieldErrors.email && <span className="field-error">{fieldErrors.email}</span>}
           </label>
 
           <label className="field" htmlFor="password">
@@ -147,6 +153,7 @@ export default function Login() {
                 {showPassword ? <EyeOffIcon size={16} /> : <EyeIcon size={16} />}
               </button>
             </div>
+            {fieldErrors.password && <span className="field-error">{fieldErrors.password}</span>}
           </label>
 
           <label className="checkbox-row">
