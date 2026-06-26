@@ -1,10 +1,9 @@
 services:
   - type: web
     name: task-management-system-backend
-    runtime: node
-    rootDir: backend
-    buildCommand: npm install && npx prisma generate
-    startCommand: npm start
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
     envVars:
       - key: CLIENT_ORIGIN
         value: https://taskora.vendra.best,https://taskora-frontend.onrender.com,https://task-management-system-pi-five.vercel.app,http://localhost:5173
