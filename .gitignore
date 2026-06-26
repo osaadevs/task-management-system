@@ -141,3 +141,7 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# Local audit-fix working docs (not for the repo)
+CHANGES-AUDIT.md
+NOTES-AUDIT-FIXES.md
