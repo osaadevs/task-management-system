@@ -1,4 +1,5 @@
 const ProjectModel = require('../models/projectModel');
+const { sanitizeText } = require('../utils/sanitize');
 
 const errorResponse = (res, statusCode, errorCode, message, description = null) => {
   return res.status(statusCode).json({
@@ -76,8 +77,8 @@ const ProjectController = {
     }
 
     const projectData = {
-      project_name: String(project_name).trim(),
-      description: description ? String(description).trim() : null,
+      project_name: sanitizeText(String(project_name)), // BE-6
+      description: description ? sanitizeText(String(description)) : null, // BE-6
       created_by: req.user.id,
     };
 

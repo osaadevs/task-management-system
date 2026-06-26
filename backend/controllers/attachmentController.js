@@ -128,10 +128,13 @@ const AttachmentController = {
         return errorResponse(res, 500, 'FETCH_ERROR', 'Failed to verify attachment access', accessErr.message);
       }
 
-      const { file_name: fileName, file_mime: fileMime, file_data: fileData } = results[0];
+      const { file_name: fileName, file_data: fileData } = results[0];
       const safeName = fileName.replace(/[^\w.\-() ]+/g, '_');
 
-      res.setHeader('Content-Type', fileMime || 'application/octet-stream');
+      // BE-12: never serve a stored file with its original (possibly executable)
+      // MIME type. Force a generic download type and stop content-type sniffing.
+      res.setHeader('Content-Type', 'application/octet-stream');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
       res.setHeader('Content-Disposition', `attachment; filename="${safeName}"`);
       res.send(fileData);
     });

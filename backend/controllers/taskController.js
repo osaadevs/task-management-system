@@ -1,5 +1,6 @@
 const TaskModel = require('../models/taskModel');
 const { errorResponse } = require('../utils/errors');
+const { sanitizeText } = require('../utils/sanitize');
 const { notifyUsers } = require('../services/notificationService');
 const { emitTaskUpdated } = require('../services/socketService');
 
@@ -120,8 +121,8 @@ const TaskController = {
     }
 
     const taskData = {
-      title,
-      description,
+      title: sanitizeText(title), // BE-6
+      description: sanitizeText(description), // BE-6
       project_id,
       due_date,
       priority: priority || 'Medium',
@@ -240,8 +241,8 @@ const TaskController = {
       }
 
       const taskData = {
-        title,
-        description,
+        title: sanitizeText(title), // BE-6
+        description: sanitizeText(description), // BE-6
         due_date,
         priority: priority || existing.priority,
         status: status || existing.status,

@@ -2,6 +2,7 @@ const CommentModel = require('../models/commentModel');
 const TaskModel = require('../models/taskModel');
 const { errorResponse } = require('../utils/errors');
 const { canAccessTask } = require('../utils/taskAccess');
+const { sanitizeText } = require('../utils/sanitize');
 const { notifyUsers } = require('../services/notificationService');
 const { emitTaskUpdated } = require('../services/socketService');
 
@@ -61,7 +62,7 @@ const CommentController = {
     const commentData = {
       task_id,
       user_id: req.user.id,
-      content: content.trim(),
+      content: sanitizeText(content), // BE-6: strip markup from stored rich-text
     };
 
     CommentModel.addComment(commentData, async (err, result) => {
