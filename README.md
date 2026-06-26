@@ -204,15 +204,13 @@ This project follows a feature-branch workflow:
 
 ## Team Contributions
 
-> **TODO:** replace the placeholder names below with the real team-member names.
-
 | Member | Branch | Contribution |
 |--------|--------|-------------|
-| [Person 1 Name] | feature/auth | Authentication APIs, JWT, bcrypt, RBAC, User Management |
-| [Person 2 Name] | feature/tasks | Task CRUD APIs, Comments, Attachments, Swagger docs |
-| [Person 3 Name] | feature/frontend | React UI, Kanban board, Login, role-based views |
-| [Person 4 Name] | feature/database | Database schema, ER diagram, Security, OWASP compliance |
-| [Person 5 Name] | feature/deployment | Socket.IO real-time notifications, deadline job, Docker, GitHub Actions CI/CD, Render + Vercel deployment, README |
+| Andrina Fernando | feature/auth | Authentication APIs (register/login), JWT issuance, bcrypt password hashing, RBAC middleware, and user welcome emails |
+| Sewmini Jayathilaka | feature/tasks | Task, Comments, Attachments & Projects CRUD APIs; role/permission middleware, validation & sorting, structured error responses, Swagger/OpenAPI docs; repo owner & branch integration |
+| Osanda Senevirathna | feature/frontend | Frontend UI/UX & Taskora design system (dashboard, kanban board, tables, role-based views, theming); plus backend security hardening — rate limiting, object-level authorization, CSPRNG temp passwords, input/rich-text sanitization, real-time assignment notifications |
+| Yasith Mavinda | feature/database | Initial PostgreSQL database schema and seed data |
+| Thaveesha Weerasinghe | feature/deployment | DevOps & deployment — Docker, GitHub Actions CI/CD, Render/Vercel/Supabase; MySQL→PostgreSQL migration with Prisma; Resend email & forgot-password flow; plus React frontend (account page, attachments, drag-and-drop) and real-time features |
 
 ---
 
