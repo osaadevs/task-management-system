@@ -227,6 +227,14 @@ export const api = {
     });
   },
 
+  deleteProject(id) {
+    return apiFetch(`${API_BASE}/projects/${id}`, {
+      method: 'DELETE',
+      headers: buildHeaders(),
+      cache: 'no-store',
+    });
+  },
+
   getTeamMembers() {
     return apiFetch(`${API_BASE}/users/team`, { headers: buildHeaders() });
   },

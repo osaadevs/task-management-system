@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { api } from '../api';
 import { useAuth, useRole } from '../context/AuthContext';
 import KanbanBoard from '../components/KanbanBoard';
@@ -8,12 +8,14 @@ import TaskFilterBar from '../components/TaskFilterBar';
 import TaskModal from '../components/TaskModal';
 import ProjectStatsBar from '../components/ProjectStatsBar';
 import { useTaskFilters } from '../hooks/useTaskFilters';
+import { canDeleteProject } from '../utils/projectAccess';
 import { ClipboardIcon } from '../components/Icons';
 
 export default function ProjectDetail() {
   const { projectId } = useParams();
-  const { mustResetPassword } = useAuth();
-  const { canManageTasks } = useRole();
+  const navigate = useNavigate();
+  const { mustResetPassword, user } = useAuth();
+  const { canManageTasks, role } = useRole();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [project, setProject] = useState(null);
@@ -128,6 +130,28 @@ export default function ProjectDetail() {
     ? Math.round((stats.done / stats.total) * 100)
     : 0;
 
+  const showDelete = project && canDeleteProject(user, role, project);
+
+  const handleDeleteProject = async () => {
+    if (
+      !project ||
+      !window.confirm(
+        `Permanently delete "${project.project_name}"? All tasks in this project will be removed.`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      setError('');
+      await api.deleteProject(project.id);
+      window.dispatchEvent(new Event('tms:tasks-changed'));
+      navigate('/projects', { replace: true });
+    } catch (err) {
+      setError(err.message || 'Failed to delete project.');
+    }
+  };
+
   if (mustResetPassword) {
     return <Navigate to="/reset-password" replace />;
   }
@@ -157,6 +181,15 @@ export default function ProjectDetail() {
           {canManageTasks && (
             <button type="button" className="btn btn--primary" onClick={() => setCreating(true)}>
               + New Task
+            </button>
+          )}
+          {showDelete && (
+            <button
+              type="button"
+              className="btn btn--ghost btn--danger-text"
+              onClick={handleDeleteProject}
+            >
+              Delete Project
             </button>
           )}
         </div>

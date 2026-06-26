@@ -45,4 +45,13 @@ router.get('/:id', verifyToken, blockIfMustResetPassword, requireRole('Admin', '
  */
 router.post('/', verifyToken, blockIfMustResetPassword, requireRole('Admin', 'Project Manager'), ProjectController.createProject);
 
+/**
+ * @swagger
+ * /api/projects/{id}:
+ *   delete:
+ *     summary: Delete a project (Admin or owning Project Manager)
+ *     tags: [Projects]
+ */
+router.delete('/:id', verifyToken, blockIfMustResetPassword, requireRole('Admin', 'Project Manager'), ProjectController.deleteProject);
+
 module.exports = router;

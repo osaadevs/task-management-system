@@ -2655,6 +2655,28 @@ textarea:focus,
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.project-card-wrap {
+  position: relative;
+}
+
+.project-card-wrap .project-card {
+  height: 100%;
+}
+
+.project-card__delete {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 2;
+  background: color-mix(in srgb, var(--card) 88%, transparent);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-card);
+}
+
+.project-card__delete:hover {
+  background: var(--danger-light);
+}
+
 .project-card {
   display: flex;
   flex-direction: column;

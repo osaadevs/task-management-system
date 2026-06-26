@@ -1,4 +1,5 @@
 const ProjectModel = require('../models/projectModel');
+const db = require('../config/db');
 const { sanitizeText } = require('../utils/sanitize');
 const { errorResponse, validationError } = require('../utils/errors');
 
@@ -95,6 +96,83 @@ const ProjectController = {
         });
       });
     });
+  },
+
+  deleteProject: async (req, res) => {
+    const projectId = Number(req.params.id);
+
+    if (!projectId || Number.isNaN(projectId)) {
+      return errorResponse(res, 400, 'INVALID_PROJECT_ID', 'Invalid project ID', 'Project ID must be a valid number');
+    }
+
+    try {
+      const deletedRows = await db.runTransaction(async (query) => {
+        const existing = await query(
+          'SELECT id, created_by FROM projects WHERE id = ?',
+          [projectId]
+        );
+
+        if (!existing.rows.length) {
+          return null;
+        }
+
+        const ownerId = Number(existing.rows[0].created_by);
+        const isAdmin = req.user.role === 'Admin';
+        const isOwnerPm =
+          req.user.role === 'Project Manager' && ownerId === Number(req.user.id);
+
+        if (!isAdmin && !isOwnerPm) {
+          const err = new Error('You do not have permission to delete this project');
+          err.code = 'FORBIDDEN';
+          throw err;
+        }
+
+        await query(
+          `DELETE FROM attachments
+           WHERE task_id IN (SELECT id FROM tasks WHERE project_id = ?)`,
+          [projectId]
+        );
+        await query(
+          `DELETE FROM comments
+           WHERE task_id IN (SELECT id FROM tasks WHERE project_id = ?)`,
+          [projectId]
+        );
+        await query(
+          `DELETE FROM task_assignments
+           WHERE task_id IN (SELECT id FROM tasks WHERE project_id = ?)`,
+          [projectId]
+        );
+        await query(
+          `DELETE FROM notifications
+           WHERE task_id IN (SELECT id FROM tasks WHERE project_id = ?)
+              OR project_id = ?`,
+          [projectId, projectId]
+        );
+        await query('DELETE FROM tasks WHERE project_id = ?', [projectId]);
+        await query('DELETE FROM project_members WHERE project_id = ?', [projectId]);
+
+        const deleted = await query('DELETE FROM projects WHERE id = ? RETURNING id', [projectId]);
+        return deleted.rows;
+      });
+
+      if (!deletedRows?.length) {
+        return errorResponse(res, 404, 'PROJECT_NOT_FOUND', 'Project not found', `No project found with ID ${projectId}`);
+      }
+
+      res.json({
+        success: true,
+        message: 'Project deleted permanently',
+        deletedId: deletedRows[0].id,
+      });
+    } catch (err) {
+      if (err.code === 'FORBIDDEN') {
+        return errorResponse(res, 403, 'FORBIDDEN', err.message);
+      }
+      if (err.code === '23503') {
+        return errorResponse(res, 409, 'DELETE_BLOCKED', 'Project could not be deleted because of linked records');
+      }
+      return errorResponse(res, 500, 'PROJECT_DELETE_ERROR', 'Failed to delete project', err.message);
+    }
   },
 
 };

@@ -6,10 +6,11 @@ import ProjectCard from '../components/ProjectCard';
 import ProjectModal from '../components/ProjectModal';
 import ErrorRetry from '../components/ErrorRetry';
 import { FolderIcon } from '../components/Icons';
+import { canDeleteProject } from '../utils/projectAccess';
 
 export default function Projects() {
-  const { mustResetPassword } = useAuth();
-  const { canCreateProjects } = useRole();
+  const { mustResetPassword, user } = useAuth();
+  const { canCreateProjects, role } = useRole();
   const [searchParams, setSearchParams] = useSearchParams();
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -52,6 +53,25 @@ export default function Projects() {
         p.description?.toLowerCase().includes(term)
     );
   }, [projects, search]);
+
+  const handleDelete = async (project) => {
+    if (
+      !window.confirm(
+        `Permanently delete "${project.project_name}"? All tasks in this project will be removed.`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      setError('');
+      await api.deleteProject(project.id);
+      setProjects((prev) => prev.filter((item) => Number(item.id) !== Number(project.id)));
+      window.dispatchEvent(new Event('tms:tasks-changed'));
+    } catch (err) {
+      setError(err.message || 'Failed to delete project.');
+    }
+  };
 
   if (mustResetPassword) {
     return <Navigate to="/reset-password" replace />;
@@ -105,7 +125,13 @@ export default function Projects() {
       ) : (
         <div className="projects-grid">
           {displayed.map((project, index) => (
-            <ProjectCard key={project.id} project={project} index={index} />
+            <ProjectCard
+              key={project.id}
+              project={project}
+              index={index}
+              canDelete={canDeleteProject(user, role, project)}
+              onDelete={handleDelete}
+            />
           ))}
         </div>
       )}
