@@ -2,6 +2,12 @@ import { useCallback, useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
 import { getSocketUrl } from '../config/apiConfig';
 
+const TASK_REFRESH_NOTIFICATION_TYPES = new Set([
+  'assignment',
+  'status_change',
+  'comment',
+]);
+
 function resolveSocketUrl() {
   return getSocketUrl();
 }
@@ -54,6 +60,10 @@ export function useSocket(enabled = true, token = null, currentUserId = null) {
       };
       setLiveNotifications((prev) => [item, ...prev].slice(0, 5));
       window.dispatchEvent(new CustomEvent('tms:notification', { detail: item }));
+
+      if (TASK_REFRESH_NOTIFICATION_TYPES.has(item.type)) {
+        window.dispatchEvent(new CustomEvent('tms:tasks-changed', { detail: item }));
+      }
     });
 
     socket.on('taskUpdated', () => {

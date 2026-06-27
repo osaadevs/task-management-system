@@ -1,7 +1,14 @@
 const jwt = require('jsonwebtoken');
 
+// Module-level io ref so emit helpers work when imported via destructuring
+// (e.g. const { emitToUser } = require('./socketService')) — otherwise `this`
+// is lost and realtime events are silently dropped after DB notifications save.
+let io = null;
+
 const socketService = {
-  io: null,
+  get io() {
+    return io;
+  },
 
   init(server, options = {}) {
     const allowedOrigins = options.allowedOrigins || [];
@@ -9,7 +16,7 @@ const socketService = {
 
     // DO-1: mirror the REST CORS allowlist instead of a wildcard on this authed
     // channel. No-origin (native clients) is allowed; localhost only outside prod.
-    this.io = new Server(server, {
+    io = new Server(server, {
       cors: {
         origin(origin, callback) {
           if (!origin) return callback(null, true);
@@ -24,7 +31,7 @@ const socketService = {
       },
     });
 
-    this.io.use((socket, next) => {
+    io.use((socket, next) => {
       const token = socket.handshake.auth?.token;
       if (!token) {
         return next(new Error('Unauthorized'));
@@ -42,7 +49,7 @@ const socketService = {
       }
     });
 
-    this.io.on('connection', (socket) => {
+    io.on('connection', (socket) => {
       if (socket.userId) {
         socket.join(`user_${socket.userId}`);
       }
@@ -57,18 +64,18 @@ const socketService = {
       socket.on('disconnect', () => {});
     });
 
-    return this.io;
+    return io;
   },
 
   emitToUser(userId, event, payload) {
-    if (!this.io || !userId) return;
-    this.io.to(`user_${Number(userId)}`).emit(event, payload);
+    if (!io || !userId) return;
+    io.to(`user_${Number(userId)}`).emit(event, payload);
   },
 
   emitTaskUpdated(taskId) {
-    if (!this.io) return;
+    if (!io) return;
     const payload = { taskId: taskId != null ? Number(taskId) : null };
-    this.io.emit('taskUpdated', payload);
+    io.emit('taskUpdated', payload);
   },
 
   notifyTaskAssigned(userId, task) {

@@ -1,5 +1,5 @@
 const NotificationModel = require('../models/notificationModel');
-const { emitToUser, emitTaskUpdated } = require('./socketService');
+const socketService = require('./socketService');
 
 function createNotification(userId, title, message, type = 'info', meta = {}) {
   const normalizedUserId = Number(userId);
@@ -27,7 +27,7 @@ function createNotification(userId, title, message, type = 'info', meta = {}) {
           created_at: result.createdAt || new Date().toISOString(),
         };
 
-        emitToUser(normalizedUserId, 'notification', payload);
+        socketService.emitToUser(normalizedUserId, 'notification', payload);
         resolve(payload);
       }
     );
@@ -51,7 +51,7 @@ async function notifyUsers(userIds, title, message, type = 'info', options = {})
 
   if (!uniqueIds.length) {
     if (options.emitTaskUpdate) {
-      emitTaskUpdated(options.taskId);
+      socketService.emitTaskUpdated(options.taskId);
     }
     return;
   }
@@ -61,7 +61,7 @@ async function notifyUsers(userIds, title, message, type = 'info', options = {})
   );
 
   if (options.emitTaskUpdate) {
-    emitTaskUpdated(options.taskId);
+    socketService.emitTaskUpdated(options.taskId);
   }
 }
 

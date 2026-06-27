@@ -2,7 +2,7 @@ const TaskModel = require('../models/taskModel');
 const { errorResponse, validationError } = require('../utils/errors');
 const { sanitizeText } = require('../utils/sanitize');
 const { notifyUsers } = require('../services/notificationService');
-const { emitTaskUpdated } = require('../services/socketService');
+const socketService = require('../services/socketService');
 
 const VALID_PRIORITIES = ['Low', 'Medium', 'High'];
 const VALID_STATUSES = ['To Do', 'In Progress', 'Completed'];
@@ -208,13 +208,14 @@ const TaskController = {
               { emitTaskUpdate: true, taskId, projectId: Number(project_id) }
             );
           } else {
-            emitTaskUpdated(taskId);
+            socketService.emitTaskUpdated(taskId);
           }
         } else {
-          emitTaskUpdated(taskId);
+          socketService.emitTaskUpdated(taskId);
         }
       } catch (notifyErr) {
         console.error('Task create notification error:', notifyErr.message);
+        socketService.emitTaskUpdated(taskId);
       }
 
       res.status(201).json({ success: true, message: 'Task created successfully', taskId });
@@ -273,7 +274,7 @@ const TaskController = {
             );
           } catch (notifyErr) {
             console.error('Status update notification error:', notifyErr.message);
-            emitTaskUpdated(Number(id));
+            socketService.emitTaskUpdated(Number(id));
           }
 
           return res.status(200).json({ success: true, message: 'Task status updated successfully' });
@@ -336,7 +337,7 @@ const TaskController = {
                 `You were assigned to "${title}"`,
                 'assignment',
                 {
-                  emitTaskUpdate: !statusChanged,
+                  emitTaskUpdate: true,
                   taskId: Number(id),
                   projectId: Number(existing.project_id),
                 }
@@ -353,7 +354,7 @@ const TaskController = {
                 { emitTaskUpdate: true, taskId: Number(id) }
               );
             } else if (!newlyAssigned.length) {
-              emitTaskUpdated(Number(id));
+              socketService.emitTaskUpdated(Number(id));
             }
           } else if (status && status !== existing.status) {
             const assignees = await getAssigneeIdsAsync(id);
@@ -365,10 +366,11 @@ const TaskController = {
               { emitTaskUpdate: true, taskId: Number(id) }
             );
           } else {
-            emitTaskUpdated(Number(id));
+            socketService.emitTaskUpdated(Number(id));
           }
         } catch (notifyErr) {
           console.error('Task update notification error:', notifyErr.message);
+          socketService.emitTaskUpdated(Number(id));
         }
 
         res.status(200).json({ success: true, message: 'Task updated successfully' });
@@ -390,7 +392,7 @@ const TaskController = {
       if (result.affectedRows === 0) {
         return errorResponse(res, 404, 'TASK_NOT_FOUND', 'Task not found');
       }
-      emitTaskUpdated(Number(id));
+      socketService.emitTaskUpdated(Number(id));
       res.status(200).json({ success: true, message: 'Task deleted successfully' });
     });
   },

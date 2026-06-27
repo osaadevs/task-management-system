@@ -4,7 +4,7 @@ const { errorResponse, validationError } = require('../utils/errors');
 const { canAccessTask } = require('../utils/taskAccess');
 const { sanitizeText } = require('../utils/sanitize');
 const { notifyUsers } = require('../services/notificationService');
-const { emitTaskUpdated } = require('../services/socketService');
+const socketService = require('../services/socketService');
 
 const CommentController = {
   getCommentsByTask: async (req, res) => {
@@ -87,7 +87,7 @@ const CommentController = {
         });
       } catch (notifyErr) {
         console.error('Comment notification error:', notifyErr.message);
-        emitTaskUpdated(Number(task_id));
+        socketService.emitTaskUpdated(Number(task_id));
       }
 
       res.status(201).json({
