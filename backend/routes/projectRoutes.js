@@ -48,6 +48,15 @@ router.post('/', verifyToken, blockIfMustResetPassword, requireRole('Admin', 'Pr
 /**
  * @swagger
  * /api/projects/{id}:
+ *   put:
+ *     summary: Update a project (Admin can reassign project manager)
+ *     tags: [Projects]
+ */
+router.put('/:id', verifyToken, blockIfMustResetPassword, requireRole('Admin', 'Project Manager'), ProjectController.updateProject);
+
+/**
+ * @swagger
+ * /api/projects/{id}:
  *   delete:
  *     summary: Delete a project (Admin or owning Project Manager)
  *     tags: [Projects]

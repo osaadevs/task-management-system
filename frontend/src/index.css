@@ -3510,6 +3510,76 @@ tr:last-child td {
   max-width: 1200px;
 }
 
+.modal--delete-user {
+  width: min(640px, calc(100vw - 32px));
+  padding: 24px;
+}
+
+.delete-user-modal__bulk {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  margin: 16px 0;
+  flex-wrap: wrap;
+}
+
+.delete-user-modal__bulk label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 220px;
+}
+
+.delete-user-modal__projects {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.delete-user-modal__project {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.delete-user-modal__project select {
+  min-width: 220px;
+}
+
+.project-manager-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.project-manager-panel__copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.project-manager-panel__controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.project-manager-panel__controls select {
+  min-width: 240px;
+}
+
 .admin-toolbar {
   display: flex;
   align-items: center;

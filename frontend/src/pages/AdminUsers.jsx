@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { api } from '../api';
+import DeleteUserModal from '../components/DeleteUserModal';
 import { TrashIcon } from '../components/Icons';
 import LoadingState from '../components/LoadingState';
 import ErrorRetry from '../components/ErrorRetry';
@@ -48,6 +49,7 @@ export default function AdminUsers() {
   const [fieldErrors, setFieldErrors] = useState({});
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(true);
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const formPanelRef = useRef(null);
   const alertRef = useRef(null);
 
@@ -172,17 +174,30 @@ export default function AdminUsers() {
   const handleDelete = async (id, name) => {
     const normalizedId = Number(id);
 
-    if (
-      !window.confirm(
-        `Permanently delete ${name}? This removes their account from the system and cannot be undone.`
-      )
-    ) {
-      return;
-    }
-
     try {
       setError('');
       setMessage('');
+
+      const impact = await api.getUserDeleteImpact(normalizedId);
+
+      if (impact.requiresReassignment) {
+        setDeleteTarget({
+          id: normalizedId,
+          name,
+          projects: impact.projects || [],
+          reassignmentCandidates: impact.reassignmentCandidates || [],
+        });
+        return;
+      }
+
+      if (
+        !window.confirm(
+          `Permanently delete ${name}? This removes their account from the system and cannot be undone.`
+        )
+      ) {
+        return;
+      }
+
       const result = await api.deleteUser(normalizedId);
       setUsers((prev) => prev.filter((user) => Number(user.id) !== normalizedId));
       setMessage(result.message || 'User deleted permanently.');
@@ -195,6 +210,14 @@ export default function AdminUsers() {
           : '';
       setError((err.message || 'Failed to delete user.') + hint);
     }
+  };
+
+  const handleDeleteCompleted = async () => {
+    const deletedId = deleteTarget?.id;
+    setMessage('User deleted permanently. Ongoing projects were reassigned.');
+    setDeleteTarget(null);
+    if (Number(editId) === Number(deletedId)) resetForm();
+    await loadUsers();
   };
 
   const emailError =
@@ -410,6 +433,14 @@ export default function AdminUsers() {
           </div>
         )}
       </section>
+
+      {deleteTarget && (
+        <DeleteUserModal
+          target={deleteTarget}
+          onClose={() => setDeleteTarget(null)}
+          onDeleted={handleDeleteCompleted}
+        />
+      )}
     </div>
   );
 }

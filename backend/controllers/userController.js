@@ -14,6 +14,81 @@ async function getRoleId(roleName) {
   return rows.length > 0 ? rows[0].id : null;
 }
 
+async function getOwnedProjects(userId) {
+  const [rows] = await db.promise().query(
+    `SELECT p.id, p.project_name, p.status,
+            (SELECT COUNT(*)::int FROM tasks WHERE project_id = p.id) AS task_count,
+            (SELECT COUNT(*)::int FROM tasks WHERE project_id = p.id AND status != 'Completed') AS incomplete_task_count
+     FROM projects p
+     WHERE p.created_by = ?
+     ORDER BY p.project_name`,
+    [userId]
+  );
+  return rows;
+}
+
+async function getReassignmentCandidates(excludeUserId) {
+  const [rows] = await db.promise().query(
+    `SELECT u.id, u.full_name AS name, u.email, r.role_name AS role
+     FROM users u
+     JOIN roles r ON u.role_id = r.id
+     WHERE u.is_active = TRUE
+       AND u.id != ?
+       AND r.role_name IN ('Admin', 'Project Manager')
+     ORDER BY u.full_name`,
+    [excludeUserId]
+  );
+  return rows;
+}
+
+async function isValidReassignmentManager(userId, excludeUserId) {
+  const [rows] = await db.promise().query(
+    `SELECT u.id
+     FROM users u
+     JOIN roles r ON u.role_id = r.id
+     WHERE u.id = ?
+       AND u.id != ?
+       AND u.is_active = TRUE
+       AND r.role_name IN ('Admin', 'Project Manager')`,
+    [userId, excludeUserId]
+  );
+  return rows.length > 0;
+}
+
+async function applyProjectReassignments(query, targetId, reassignments) {
+  for (const entry of reassignments) {
+    const projectId = Number(entry.project_id);
+    const newManagerId = Number(entry.new_manager_id);
+
+    const updated = await query(
+      `UPDATE projects
+       SET created_by = ?, updated_at = CURRENT_TIMESTAMP
+       WHERE id = ? AND created_by = ?`,
+      [newManagerId, projectId, targetId]
+    );
+
+    if (!updated.rowCount) {
+      const err = new Error(`Project ${projectId} could not be reassigned`);
+      err.code = 'INVALID_REASSIGNMENT';
+      throw err;
+    }
+
+    await query(
+      `INSERT INTO project_members (project_id, user_id)
+       VALUES (?, ?)
+       ON CONFLICT (project_id, user_id) DO NOTHING`,
+      [projectId, newManagerId]
+    );
+
+    await query(
+      `UPDATE tasks
+       SET created_by = ?, updated_at = CURRENT_TIMESTAMP
+       WHERE project_id = ? AND created_by = ?`,
+      [newManagerId, projectId, targetId]
+    );
+  }
+}
+
 async function rollbackNewUser(userId) {
   await db.promise().query('DELETE FROM notifications WHERE user_id = ?', [userId]);
   await db.promise().query('DELETE FROM users WHERE id = ?', [userId]);
@@ -238,10 +313,55 @@ exports.activateUser = async (req, res) => {
   }
 };
 
+exports.getUserDeleteImpact = async (req, res) => {
+  try {
+    const targetId = Number(req.params.id);
+
+    if (!targetId || Number.isNaN(targetId)) {
+      return validationError(res, [{ field: 'id', message: 'A valid user id is required' }]);
+    }
+
+    const [rows] = await db.promise().query(
+      `SELECT u.id, u.full_name, r.role_name
+       FROM users u
+       JOIN roles r ON u.role_id = r.id
+       WHERE u.id = ?`,
+      [targetId]
+    );
+
+    if (!rows.length) {
+      return res.status(404).json({ errorCode: 'NOT_FOUND', message: 'User not found' });
+    }
+
+    const user = rows[0];
+    const projects = await getOwnedProjects(targetId);
+    const requiresReassignment = user.role_name === 'Project Manager' && projects.length > 0;
+
+    res.json({
+      success: true,
+      user: { id: user.id, name: user.full_name, role: user.role_name },
+      requiresReassignment,
+      message: requiresReassignment
+        ? 'There are ongoing projects and tasks with this user'
+        : null,
+      projects,
+      reassignmentCandidates: requiresReassignment
+        ? await getReassignmentCandidates(targetId)
+        : [],
+    });
+  } catch (err) {
+    return internalError(res, err, 'Failed to load delete impact');
+  }
+};
+
 exports.deleteUser = async (req, res) => {
   try {
     const targetId = Number(req.params.id);
     const adminId = Number(req.user.id);
+    const body = req.body || {};
+    const projectReassignments = Array.isArray(body.project_reassignments)
+      ? body.project_reassignments
+      : [];
 
     if (!targetId || Number.isNaN(targetId)) {
       return validationError(res, [{ field: 'id', message: 'A valid user id is required' }]);
@@ -252,6 +372,76 @@ exports.deleteUser = async (req, res) => {
         errorCode: 'CANNOT_DELETE_SELF',
         message: 'You cannot delete your own account',
       });
+    }
+
+    const ownedProjects = await getOwnedProjects(targetId);
+    const [targetRows] = await db.promise().query(
+      `SELECT u.id, r.role_name
+       FROM users u
+       JOIN roles r ON u.role_id = r.id
+       WHERE u.id = ?`,
+      [targetId]
+    );
+
+    if (!targetRows.length) {
+      return res.status(404).json({ errorCode: 'NOT_FOUND', message: 'User not found' });
+    }
+
+    const targetRole = targetRows[0].role_name;
+    const needsReassignment = targetRole === 'Project Manager' && ownedProjects.length > 0;
+
+    if (needsReassignment) {
+      if (!projectReassignments.length) {
+        return res.status(409).json({
+          errorCode: 'PROJECTS_NEED_REASSIGNMENT',
+          message: 'There are ongoing projects and tasks with this user',
+          description:
+            'Assign each project to another Project Manager or Admin before deleting this account.',
+          projects: ownedProjects,
+          reassignmentCandidates: await getReassignmentCandidates(targetId),
+        });
+      }
+
+      const ownedIds = new Set(ownedProjects.map((p) => Number(p.id)));
+      const mappedIds = new Set();
+
+      for (const entry of projectReassignments) {
+        const projectId = Number(entry.project_id);
+        const newManagerId = Number(entry.new_manager_id);
+
+        if (!ownedIds.has(projectId)) {
+          return validationError(res, [
+            { field: 'project_reassignments', message: `Project ${projectId} is not owned by this user` },
+          ]);
+        }
+
+        if (mappedIds.has(projectId)) {
+          return validationError(res, [
+            { field: 'project_reassignments', message: `Duplicate reassignment for project ${projectId}` },
+          ]);
+        }
+
+        mappedIds.add(projectId);
+
+        if (!(await isValidReassignmentManager(newManagerId, targetId))) {
+          return validationError(res, [
+            {
+              field: 'project_reassignments',
+              message: 'Each project must be assigned to an active Admin or Project Manager',
+            },
+          ]);
+        }
+      }
+
+      if (mappedIds.size !== ownedIds.size) {
+        return res.status(409).json({
+          errorCode: 'PROJECTS_NEED_REASSIGNMENT',
+          message: 'There are ongoing projects and tasks with this user',
+          description: 'Assign a new manager for every project owned by this user.',
+          projects: ownedProjects,
+          reassignmentCandidates: await getReassignmentCandidates(targetId),
+        });
+      }
     }
 
     const deletedRows = await db.runTransaction(async (query) => {
@@ -282,17 +472,23 @@ exports.deleteUser = async (req, res) => {
         }
       }
 
-      await query('DELETE FROM comments WHERE user_id = ?', [targetId]);
-      await query('DELETE FROM attachments WHERE uploaded_by = ?', [targetId]);
-      await query('DELETE FROM notifications WHERE user_id = ?', [targetId]);
-      await query(
-        'UPDATE projects SET created_by = ?, updated_at = CURRENT_TIMESTAMP WHERE created_by = ?',
-        [adminId, targetId]
-      );
+      if (needsReassignment) {
+        await applyProjectReassignments(query, targetId, projectReassignments);
+      } else {
+        await query(
+          'UPDATE projects SET created_by = ?, updated_at = CURRENT_TIMESTAMP WHERE created_by = ?',
+          [adminId, targetId]
+        );
+      }
+
       await query(
         'UPDATE tasks SET created_by = ?, updated_at = CURRENT_TIMESTAMP WHERE created_by = ?',
         [adminId, targetId]
       );
+
+      await query('DELETE FROM comments WHERE user_id = ?', [targetId]);
+      await query('DELETE FROM attachments WHERE uploaded_by = ?', [targetId]);
+      await query('DELETE FROM notifications WHERE user_id = ?', [targetId]);
 
       const deleted = await query('DELETE FROM users WHERE id = ? RETURNING id', [targetId]);
       return deleted.rows;
@@ -307,6 +503,12 @@ exports.deleteUser = async (req, res) => {
     if (err.code === 'LAST_ADMIN') {
       return res.status(400).json({
         errorCode: 'LAST_ADMIN',
+        message: err.message,
+      });
+    }
+    if (err.code === 'INVALID_REASSIGNMENT') {
+      return res.status(400).json({
+        errorCode: 'INVALID_REASSIGNMENT',
         message: err.message,
       });
     }

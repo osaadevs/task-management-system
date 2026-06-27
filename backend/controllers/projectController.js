@@ -98,6 +98,128 @@ const ProjectController = {
     });
   },
 
+  updateProject: async (req, res) => {
+    const projectId = Number(req.params.id);
+    const body = req.body || {};
+
+    if (!projectId || Number.isNaN(projectId)) {
+      return errorResponse(res, 400, 'INVALID_PROJECT_ID', 'Invalid project ID', 'Project ID must be a valid number');
+    }
+
+    try {
+      const [existingRows] = await db.promise().query(
+        'SELECT id, created_by, project_name, description FROM projects WHERE id = ?',
+        [projectId]
+      );
+
+      if (!existingRows.length) {
+        return errorResponse(res, 404, 'PROJECT_NOT_FOUND', 'Project not found');
+      }
+
+      const existing = existingRows[0];
+      const isAdmin = req.user.role === 'Admin';
+      const isOwnerPm =
+        req.user.role === 'Project Manager' && Number(existing.created_by) === Number(req.user.id);
+
+      if (!isAdmin && !isOwnerPm) {
+        return errorResponse(res, 403, 'FORBIDDEN', 'You do not have permission to update this project');
+      }
+
+      const updates = {};
+
+      if (body.project_name !== undefined) {
+        const projectName = sanitizeText(String(body.project_name)).trim();
+        if (!projectName) {
+          return validationError(res, [{ field: 'project_name', message: 'Project name is required' }]);
+        }
+        updates.project_name = projectName;
+      }
+
+      if (body.description !== undefined) {
+        updates.description = body.description
+          ? sanitizeText(String(body.description))
+          : null;
+      }
+
+      if (body.created_by !== undefined) {
+        if (!isAdmin) {
+          return errorResponse(res, 403, 'FORBIDDEN', 'Only an admin can change the project manager');
+        }
+
+        const newManagerId = Number(body.created_by);
+        if (!newManagerId || Number.isNaN(newManagerId)) {
+          return validationError(res, [{ field: 'created_by', message: 'A valid project manager is required' }]);
+        }
+
+        const [managerRows] = await db.promise().query(
+          `SELECT u.id
+           FROM users u
+           JOIN roles r ON u.role_id = r.id
+           WHERE u.id = ?
+             AND u.is_active = TRUE
+             AND r.role_name IN ('Admin', 'Project Manager')`,
+          [newManagerId]
+        );
+
+        if (!managerRows.length) {
+          return validationError(res, [
+            { field: 'created_by', message: 'Project manager must be an active Admin or Project Manager' },
+          ]);
+        }
+
+        updates.created_by = newManagerId;
+      }
+
+      if (!Object.keys(updates).length) {
+        return validationError(res, [{ field: 'body', message: 'No valid fields to update' }]);
+      }
+
+      await new Promise((resolve, reject) => {
+        ProjectModel.updateProject(projectId, updates, (err, result) => {
+          if (err) return reject(err);
+          if (!result.affectedRows) {
+            const notFound = new Error('Project not found');
+            notFound.code = 'NOT_FOUND';
+            return reject(notFound);
+          }
+          resolve();
+        });
+      });
+
+      if (updates.created_by) {
+        await new Promise((resolve, reject) => {
+          ProjectModel.addProjectMember(projectId, updates.created_by, (err) => {
+            if (err) return reject(err);
+            resolve();
+          });
+        });
+
+        await db.promise().query(
+          `UPDATE tasks
+           SET created_by = ?, updated_at = CURRENT_TIMESTAMP
+           WHERE project_id = ? AND created_by = ?`,
+          [updates.created_by, projectId, existing.created_by]
+        );
+      }
+
+      ProjectModel.getProjectById(projectId, (err, results) => {
+        if (err) {
+          return errorResponse(res, 500, 'PROJECT_FETCH_ERROR', 'Project updated but failed to reload', err.message);
+        }
+        res.status(200).json({
+          success: true,
+          message: 'Project updated successfully',
+          data: results[0],
+        });
+      });
+    } catch (err) {
+      if (err.code === 'NOT_FOUND') {
+        return errorResponse(res, 404, 'PROJECT_NOT_FOUND', 'Project not found');
+      }
+      return errorResponse(res, 500, 'PROJECT_UPDATE_ERROR', 'Failed to update project', err.message);
+    }
+  },
+
   deleteProject: async (req, res) => {
     const projectId = Number(req.params.id);
 

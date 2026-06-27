@@ -100,6 +100,17 @@ router.put('/:id', verifyToken, blockIfMustResetPassword, requireRole('Admin'), 
 
 /**
  * @swagger
+ * /api/users/{id}/delete-impact:
+ *   get:
+ *     summary: Preview owned projects before deleting a user (Admin)
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.get('/:id/delete-impact', verifyToken, blockIfMustResetPassword, requireRole('Admin'), userController.getUserDeleteImpact);
+
+/**
+ * @swagger
  * /api/users/{id}:
  *   delete:
  *     summary: Permanently delete a user (Admin)

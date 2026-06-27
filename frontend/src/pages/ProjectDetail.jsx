@@ -15,7 +15,7 @@ export default function ProjectDetail() {
   const { projectId } = useParams();
   const navigate = useNavigate();
   const { mustResetPassword, user } = useAuth();
-  const { canManageTasks, role } = useRole();
+  const { canManageTasks, role, canViewAdmin } = useRole();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [project, setProject] = useState(null);
@@ -25,6 +25,9 @@ export default function ProjectDetail() {
   const [selectedTask, setSelectedTask] = useState(null);
   const [creating, setCreating] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [managerOptions, setManagerOptions] = useState([]);
+  const [selectedManagerId, setSelectedManagerId] = useState('');
+  const [savingManager, setSavingManager] = useState(false);
 
   const filters = useTaskFilters(tasks);
   const displayedTasks = filters.filtered;
@@ -57,6 +60,30 @@ export default function ProjectDetail() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  useEffect(() => {
+    if (!canViewAdmin) return;
+
+    api
+      .getUsers()
+      .then((data) => {
+        const list = Array.isArray(data) ? data : (data.data || []);
+        setManagerOptions(
+          list.filter(
+            (member) =>
+              member.is_active !== false &&
+              (member.role === 'Admin' || member.role === 'Project Manager')
+          )
+        );
+      })
+      .catch(() => setManagerOptions([]));
+  }, [canViewAdmin]);
+
+  useEffect(() => {
+    if (project?.created_by) {
+      setSelectedManagerId(String(project.created_by));
+    }
+  }, [project?.created_by]);
 
   useEffect(() => {
     const onTasksChanged = () => loadData({ silent: true });
@@ -133,6 +160,26 @@ export default function ProjectDetail() {
 
   const showDelete = project && canDeleteProject(user, role, project);
 
+  const handleChangeProjectManager = async () => {
+    if (!project || !selectedManagerId || Number(selectedManagerId) === Number(project.created_by)) {
+      return;
+    }
+
+    try {
+      setError('');
+      setSavingManager(true);
+      const response = await api.updateProject(project.id, {
+        created_by: Number(selectedManagerId),
+      });
+      setProject(response.data);
+      window.dispatchEvent(new Event('tms:tasks-changed'));
+    } catch (err) {
+      setError(err.message || 'Failed to update project manager.');
+    } finally {
+      setSavingManager(false);
+    }
+  };
+
   const handleDeleteProject = async () => {
     if (
       !project ||
@@ -203,6 +250,43 @@ export default function ProjectDetail() {
           )}
         </div>
       </header>
+
+      {canViewAdmin && project && (
+        <section className="panel project-manager-panel">
+          <div className="project-manager-panel__copy">
+            <strong>Project manager</strong>
+            <span className="muted">
+              Currently owned by {project.created_by_name || 'Unknown'}.
+            </span>
+          </div>
+          <div className="project-manager-panel__controls">
+            <select
+              value={selectedManagerId}
+              onChange={(e) => setSelectedManagerId(e.target.value)}
+              aria-label="Project manager"
+            >
+              <option value="">Select manager…</option>
+              {managerOptions.map((member) => (
+                <option key={member.id} value={member.id}>
+                  {member.name || member.full_name} ({member.role})
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              className="btn btn--ghost btn--small"
+              onClick={handleChangeProjectManager}
+              disabled={
+                savingManager ||
+                !selectedManagerId ||
+                Number(selectedManagerId) === Number(project.created_by)
+              }
+            >
+              {savingManager ? 'Saving…' : 'Update manager'}
+            </button>
+          </div>
+        </section>
+      )}
 
       {!loading && !error && (
         <ProjectStatsBar stats={stats} completionRate={completionRate} />

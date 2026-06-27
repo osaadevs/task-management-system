@@ -227,6 +227,14 @@ export const api = {
     });
   },
 
+  updateProject(id, updates) {
+    return apiFetch(`${API_BASE}/projects/${id}`, {
+      method: 'PUT',
+      headers: buildHeaders(),
+      body: JSON.stringify(updates),
+    });
+  },
+
   deleteProject(id) {
     return apiFetch(`${API_BASE}/projects/${id}`, {
       method: 'DELETE',
@@ -281,9 +289,17 @@ export const api = {
     });
   },
 
-  deleteUser(id) {
+  deleteUser(id, payload = undefined) {
     return apiFetch(`${API_BASE}/users/${id}`, {
       method: 'DELETE',
+      headers: buildHeaders(),
+      body: payload ? JSON.stringify(payload) : undefined,
+      cache: 'no-store',
+    });
+  },
+
+  getUserDeleteImpact(id) {
+    return apiFetch(`${API_BASE}/users/${id}/delete-impact`, {
       headers: buildHeaders(),
       cache: 'no-store',
     });

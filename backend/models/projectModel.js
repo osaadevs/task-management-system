@@ -99,6 +99,28 @@ const ProjectModel = {
     db.query(sql, [projectId, userId], callback);
   },
 
+  updateProject: (projectId, fields, callback) => {
+    const sets = ['updated_at = CURRENT_TIMESTAMP'];
+    const values = [];
+
+    if (fields.project_name !== undefined) {
+      sets.unshift('project_name = ?');
+      values.push(fields.project_name);
+    }
+    if (fields.description !== undefined) {
+      sets.unshift('description = ?');
+      values.push(fields.description);
+    }
+    if (fields.created_by !== undefined) {
+      sets.unshift('created_by = ?');
+      values.push(fields.created_by);
+    }
+
+    values.push(projectId);
+    const sql = `UPDATE projects SET ${sets.join(', ')} WHERE id = ? RETURNING id`;
+    db.query(sql, values, callback);
+  },
+
 };
 
 module.exports = ProjectModel;
