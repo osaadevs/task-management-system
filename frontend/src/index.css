@@ -1726,10 +1726,34 @@ textarea:focus,
 
 /* ─── Kanban board ─── */
 
+.kanban-scroll {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 6px;
+  scrollbar-gutter: stable;
+}
+
+.kanban-scroll::-webkit-scrollbar {
+  height: 10px;
+}
+
+.kanban-scroll::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 999px;
+}
+
+.kanban-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
 .kanban {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(260px, 1fr));
   gap: 16px;
+  min-width: 100%;
 }
 
 .kanban__column {
@@ -1737,6 +1761,7 @@ textarea:focus,
   border: none;
   border-radius: var(--radius);
   min-height: 420px;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   box-shadow: var(--shadow-card);
@@ -4284,8 +4309,9 @@ tr:last-child td {
 
 .skeleton-board {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(260px, 1fr));
   gap: 16px;
+  min-width: 100%;
 }
 
 .skeleton-column {
@@ -4352,12 +4378,27 @@ tr:last-child td {
     align-items: flex-start;
   }
 
+  /* Keep Kanban columns side-by-side so drag-and-drop stays horizontal in split-screen. */
   .kanban {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, minmax(240px, 1fr));
   }
 
   .skeleton-board {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, minmax(240px, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .kanban {
+    grid-template-columns: repeat(3, 240px);
+    width: max-content;
+    min-width: 100%;
+  }
+
+  .skeleton-board {
+    grid-template-columns: repeat(3, 240px);
+    width: max-content;
+    min-width: 100%;
   }
 }
 

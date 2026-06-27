@@ -163,13 +163,15 @@ export default function AllTasks() {
 
       {loading ? (
         <>
-          <div className="skeleton-board">
+          <div className="kanban-scroll">
+            <div className="skeleton-board">
             {[1, 2, 3].map((col) => (
               <div key={col} className="skeleton-column">
                 <div className="skeleton skeleton--title" />
                 <div className="skeleton skeleton--card" />
               </div>
             ))}
+            </div>
           </div>
           <LoadingState label="Loading tasks…" />
         </>

@@ -33,64 +33,66 @@ export default function KanbanBoard({ tasks, onOpenTask, onStatusChange, onAddTa
   };
 
   return (
-    <div className={`kanban ${draggingId ? 'kanban--dragging' : ''}`}>
-      {COLUMNS.map(({ status, accent }) => (
-        <section
-          key={status}
-          className={`kanban__column kanban__column--${accent} ${dropTarget === status ? 'kanban__column--drop' : ''}`}
-          onDragOver={(e) => {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = 'move';
-            setDropTarget(status);
-          }}
-          onDrop={(e) => {
-            e.preventDefault();
-            handleDrop(status);
-          }}
-        >
-          <header>
-            <div className="kanban__column-title">
-              <span className={`kanban__dot kanban__dot--${accent}`} aria-hidden="true" />
-              <h2>{status}</h2>
-            </div>
-            <span className="kanban__count">{grouped[status].length}</span>
-          </header>
-          <div className="kanban__list">
-            {grouped[status].map((task) => (
-              <TaskCard
-                key={task.id}
-                task={task}
-                onOpen={onOpenTask}
-                draggable
-                isDragging={draggingId === task.id}
-                onDragStart={(e) => {
-                  e.dataTransfer.effectAllowed = 'move';
-                  e.dataTransfer.setData('text/plain', String(task.id));
-                  const card = e.currentTarget;
-                  if (card) {
-                    e.dataTransfer.setDragImage(card, card.offsetWidth / 2, 24);
-                  }
-                  setDraggingId(task.id);
-                }}
-                onDragEnd={clearDragState}
-              />
-            ))}
-            {draggingId && dropTarget === status && (
-              <div className="kanban__drop-placeholder" aria-hidden="true" />
-            )}
-            {grouped[status].length === 0 && !draggingId && (
-              <div className="kanban__empty">
-                <p>No tasks in this column</p>
+    <div className="kanban-scroll" aria-label="Kanban board">
+      <div className={`kanban ${draggingId ? 'kanban--dragging' : ''}`}>
+        {COLUMNS.map(({ status, accent }) => (
+          <section
+            key={status}
+            className={`kanban__column kanban__column--${accent} ${dropTarget === status ? 'kanban__column--drop' : ''}`}
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = 'move';
+              setDropTarget(status);
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              handleDrop(status);
+            }}
+          >
+            <header>
+              <div className="kanban__column-title">
+                <span className={`kanban__dot kanban__dot--${accent}`} aria-hidden="true" />
+                <h2>{status}</h2>
               </div>
+              <span className="kanban__count">{grouped[status].length}</span>
+            </header>
+            <div className="kanban__list">
+              {grouped[status].map((task) => (
+                <TaskCard
+                  key={task.id}
+                  task={task}
+                  onOpen={onOpenTask}
+                  draggable
+                  isDragging={draggingId === task.id}
+                  onDragStart={(e) => {
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', String(task.id));
+                    const card = e.currentTarget;
+                    if (card) {
+                      e.dataTransfer.setDragImage(card, card.offsetWidth / 2, 24);
+                    }
+                    setDraggingId(task.id);
+                  }}
+                  onDragEnd={clearDragState}
+                />
+              ))}
+              {draggingId && dropTarget === status && (
+                <div className="kanban__drop-placeholder" aria-hidden="true" />
+              )}
+              {grouped[status].length === 0 && !draggingId && (
+                <div className="kanban__empty">
+                  <p>No tasks in this column</p>
+                </div>
+              )}
+            </div>
+            {onAddTask && status === 'To Do' && (
+              <button type="button" className="kanban__add" onClick={onAddTask}>
+                + Add Task
+              </button>
             )}
-          </div>
-          {onAddTask && status === 'To Do' && (
-            <button type="button" className="kanban__add" onClick={onAddTask}>
-              + Add Task
-            </button>
-          )}
-        </section>
-      ))}
+          </section>
+        ))}
+      </div>
     </div>
   );
 }
